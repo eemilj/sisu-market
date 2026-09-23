@@ -1,0 +1,461 @@
+openapi: 3.0.3
+info:
+  title: Sisu Market API
+  description: >
+    REST surface for the Sisu Prediction Market. Authentication is via an httpOnly session
+    cookie (see research.md §3); endpoints below that require login expect that cookie, not an
+    Authorization header. All error responses use the `Error` schema. This is the Phase 1 design
+    contract — the authoritative source generated at build time is Quarkus's
+    quarkus-smallrye-openapi output, per Constitution I.
+  version: "0.1.0"
+servers:
+  - url: /api
+tags:
+  - name: auth
+  - name: users
+  - name: predictions
+  - name: wagers
+  - name: leaderboard
+
+paths:
+  /auth/register:
+    post:
+      tags: [auth]
+      summary: Register a new account (FR-001)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Account created, session cookie set, starting balance granted (FR-007)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSummary'
+        '409':
+          description: Username already taken
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Validation failure (empty username/password)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Log in (FR-002)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Session cookie set
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSummary'
+        '401':
+          description: >
+            Invalid username or password. The response MUST NOT indicate which field was wrong
+            (FR-003).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: >
+            5 failed attempts reached for this username/IP; retry after the cooldown (FR-037).
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                description: Seconds until the cooldown ends (up to 900).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/logout:
+    post:
+      tags: [auth]
+      summary: Log out (FR-004)
+      responses:
+        '204':
+          description: Session cookie cleared
+
+  /leaderboard:
+    get:
+      tags: [leaderboard]
+      summary: Public leaderboard ranked by balance (FR-029)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LeaderboardEntry'
+
+  /users/me:
+    get:
+      tags: [users]
+      summary: The logged-in user's own profile — private (FR-030)
+      security: [{ sessionCookie: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '401':
+          description: Not logged in
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags: [users]
+      summary: Delete the logged-in user's account (FR-033, FR-036)
+      security: [{ sessionCookie: [] }]
+      responses:
+        '204':
+          description: >
+            Account deleted. Any open wagers were refunded and any unresolved created predictions
+            were marked cancelled and their wagers refunded, before deletion.
+        '401':
+          description: Not logged in
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/me/transactions:
+    get:
+      tags: [users]
+      summary: The logged-in user's transaction history (FR-011)
+      security: [{ sessionCookie: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+
+  /users/me/wagers:
+    get:
+      tags: [wagers]
+      summary: The logged-in user's own open wagers, with potential payout (FR-024)
+      security: [{ sessionCookie: [] }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Wager'
+
+  /predictions:
+    get:
+      tags: [predictions]
+      summary: List predictions, optionally filtered by status (FR-016, FR-018)
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/PredictionStatus'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PredictionSummary'
+    post:
+      tags: [predictions]
+      summary: Create a prediction (FR-012, FR-013, FR-014)
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePredictionRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PredictionDetail'
+        '401':
+          description: Not logged in
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: >
+            Empty question/resolution criteria, or a closing date that isn't in the future.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /predictions/{id}:
+    get:
+      tags: [predictions]
+      summary: Prediction detail (FR-017)
+      parameters:
+        - $ref: '#/components/parameters/PredictionId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PredictionDetail'
+        '404':
+          description: No such prediction
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /predictions/{id}/wagers:
+    post:
+      tags: [wagers]
+      summary: Place a wager on this prediction (FR-019 through FR-023)
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - $ref: '#/components/parameters/PredictionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceWagerRequest'
+      responses:
+        '201':
+          description: >
+            Wager recorded; balance debited and prediction odds updated atomically in the same
+            transaction (FR-022).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Wager'
+        '401':
+          description: Not logged in
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Prediction is not open (closed, resolved, or cancelled) (FR-021)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: >
+            Wager amount is not a positive whole number, or exceeds the user's balance
+            (FR-020).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /predictions/{id}/resolve:
+    post:
+      tags: [predictions]
+      summary: Resolve a closed prediction to its final outcome (FR-026, FR-027, FR-028)
+      description: Requires the RESOLVER role (FR-035); the prediction's creator is not automatically eligible.
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - $ref: '#/components/parameters/PredictionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResolvePredictionRequest'
+      responses:
+        '200':
+          description: Resolved; winning wagers paid out automatically as recorded transactions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PredictionDetail'
+        '403':
+          description: Logged-in user does not hold the RESOLVER role
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Prediction is not CLOSED (already resolved, still open, or cancelled) (FR-027)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: sisu_session
+      description: httpOnly, Secure, SameSite=Strict JWT cookie (research.md §3)
+
+  parameters:
+    PredictionId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+
+  schemas:
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: Stable machine-readable error code; the frontend maps this to Finnish copy.
+        message:
+          type: string
+          description: English diagnostic message (not shown to end users directly).
+
+    RegisterRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username: { type: string, minLength: 1 }
+        password: { type: string, minLength: 8 }
+
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username: { type: string }
+        password: { type: string }
+
+    UserSummary:
+      type: object
+      properties:
+        id: { type: string }
+        username: { type: string }
+        balanceSisu: { type: integer }
+
+    UserProfile:
+      allOf:
+        - $ref: '#/components/schemas/UserSummary'
+        - type: object
+          properties:
+            role: { type: string, enum: [USER, RESOLVER] }
+            createdPredictions:
+              type: array
+              items: { $ref: '#/components/schemas/PredictionSummary' }
+            wagers:
+              type: array
+              items: { $ref: '#/components/schemas/Wager' }
+
+    LeaderboardEntry:
+      type: object
+      properties:
+        rank: { type: integer }
+        username: { type: string }
+        balanceSisu: { type: integer }
+
+    PredictionStatus:
+      type: string
+      enum: [OPEN, CLOSED, RESOLVED, CANCELLED]
+
+    PredictionSummary:
+      type: object
+      properties:
+        id: { type: string }
+        question: { type: string }
+        status: { $ref: '#/components/schemas/PredictionStatus' }
+        closingAt: { type: string, format: date-time }
+        totalSisuWagered: { type: integer }
+        oddsYesPercent: { type: number, format: double }
+        oddsNoPercent: { type: number, format: double }
+
+    PredictionDetail:
+      allOf:
+        - $ref: '#/components/schemas/PredictionSummary'
+        - type: object
+          properties:
+            description: { type: string }
+            resolutionCriteria: { type: string }
+            creatorUsername: { type: string }
+            winningOutcome:
+              type: string
+              enum: [YES, NO]
+              nullable: true
+
+    CreatePredictionRequest:
+      type: object
+      required: [question, description, resolutionCriteria, closingAt]
+      properties:
+        question: { type: string, minLength: 1 }
+        description: { type: string }
+        resolutionCriteria: { type: string, minLength: 1 }
+        closingAt: { type: string, format: date-time }
+
+    ResolvePredictionRequest:
+      type: object
+      required: [outcome]
+      properties:
+        outcome: { type: string, enum: [YES, NO] }
+
+    PlaceWagerRequest:
+      type: object
+      required: [outcome, amountSisu]
+      properties:
+        outcome: { type: string, enum: [YES, NO] }
+        amountSisu: { type: integer, minimum: 1 }
+
+    Wager:
+      type: object
+      properties:
+        id: { type: string }
+        predictionId: { type: string }
+        outcome: { type: string, enum: [YES, NO] }
+        amountSisu: { type: integer }
+        status: { type: string, enum: [OPEN, WON, LOST, REFUNDED] }
+        potentialPayoutSisu:
+          type: integer
+          description: Live estimate while OPEN; final payout once settled.
+        placedAt: { type: string, format: date-time }
+
+    Transaction:
+      type: object
+      properties:
+        id: { type: string }
+        direction: { type: string, enum: [CREDIT, DEBIT] }
+        amountSisu: { type: integer }
+        reason: { type: string, enum: [STARTING_GRANT, WAGER_PLACED, PAYOUT, REFUND] }
+        createdAt: { type: string, format: date-time }
