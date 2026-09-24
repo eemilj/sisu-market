@@ -1,0 +1,65 @@
+# Local stack: `docker compose up` starts MongoDB (single-node replica set), the Quarkus API on
+# http://localhost:8080 and the SPA on http://localhost:5173 (quickstart.md section 1).
+services:
+  mongo:
+    image: mongo:7.0
+    # A replica set is required for multi-document transactions (research.md section 2).
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      # Initiates the one-member replica set on first boot, then reports healthy once it is up.
+      test:
+        - CMD
+        - mongosh
+        - --quiet
+        - --eval
+        - "try { rs.status().ok } catch (e) { rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'mongo:27017'}]}).ok }"
+      interval: 5s
+      timeout: 10s
+      start_period: 10s
+      retries: 30
+
+  # Generates the JWT signing key pair once into a volume so no key is ever committed
+  # (Constitution V). Delete the `jwt-keys` volume to rotate it.
+  jwt-keys:
+    image: alpine:3.22
+    command:
+      - sh
+      - -c
+      - >
+        [ -f /keys/private.pem ] ||
+        (apk add --no-cache openssl > /dev/null &&
+        openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out /keys/private.pem &&
+        openssl pkey -in /keys/private.pem -pubout -out /keys/public.pem);
+        chmod 644 /keys/private.pem /keys/public.pem
+    volumes:
+      - jwt-keys:/keys
+
+  sisu-backend:
+    build: ./sisu-backend
+    depends_on:
+      mongo:
+        condition: service_healthy
+      jwt-keys:
+        condition: service_completed_successfully
+    environment:
+      MONGODB_URI: mongodb://mongo:27017/?replicaSet=rs0
+      MONGODB_DATABASE: sisu
+      SISU_JWT_PRIVATE_KEY_LOCATION: /keys/private.pem
+      SISU_JWT_PUBLIC_KEY_LOCATION: /keys/public.pem
+    volumes:
+      - jwt-keys:/keys:ro
+    ports:
+      - "8080:8080"
+
+  sisu-frontend:
+    build: ./sisu-frontend
+    depends_on:
+      - sisu-backend
+    ports:
+      - "5173:80"
+
+volumes:
+  mongo-data:
+  jwt-keys:

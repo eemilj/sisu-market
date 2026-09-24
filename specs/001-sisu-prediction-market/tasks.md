@@ -39,20 +39,20 @@ creation already existing.
 
 **Purpose**: Project initialization and tooling
 
-- [ ] T001 Create the `sisu-backend` Quarkus 3.x + Java 25 Maven project skeleton with
+- [X] T001 Create the `sisu-backend` Quarkus 3.x + Java 25 Maven project skeleton with
   `quarkus-resteasy-reactive`, `quarkus-resteasy-reactive-jackson`, `quarkus-mongodb-panache`,
   `quarkus-smallrye-jwt`, `quarkus-smallrye-openapi`, and `quarkus-hibernate-validator` in
   `sisu-backend/pom.xml`
-- [ ] T002 [P] Create the `sisu-frontend` Vite + React 18 + TypeScript project skeleton with
+- [X] T002 [P] Create the `sisu-frontend` Vite + React 18 + TypeScript project skeleton with
   Tailwind CSS configured in `sisu-frontend/`
-- [ ] T003 [P] Configure backend Checkstyle + Spotless in `sisu-backend/pom.xml`
-- [ ] T004 [P] Configure frontend ESLint + Prettier in `sisu-frontend/.eslintrc.cjs` and
+- [X] T003 [P] Configure backend Checkstyle + Spotless in `sisu-backend/pom.xml`
+- [X] T004 [P] Configure frontend ESLint + Prettier in `sisu-frontend/.eslintrc.cjs` and
   `sisu-frontend/.prettierrc`
-- [ ] T005 [P] Configure the backend JaCoCo plugin with an 80% line-coverage gate on business-logic
+- [X] T005 [P] Configure the backend JaCoCo plugin with an 80% line-coverage gate on business-logic
   packages in `sisu-backend/pom.xml`
-- [ ] T006 Create the root `docker-compose.yml` starting a single-node MongoDB replica set,
+- [X] T006 Create the root `docker-compose.yml` starting a single-node MongoDB replica set,
   `sisu-backend`, and `sisu-frontend` with one command
-- [ ] T007 [P] Add a GitHub Actions CI workflow running the backend (`mvn test`) and frontend
+- [X] T007 [P] Add a GitHub Actions CI workflow running the backend (`mvn test`) and frontend
   (`npm test`) suites on every pull request and blocking merge on failure, in
   `.github/workflows/ci.yml`
 
@@ -64,39 +64,39 @@ creation already existing.
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T008 Configure the MongoDB client and single-node replica set connection in
+- [X] T008 Configure the MongoDB client and single-node replica set connection in
   `sisu-backend/src/main/resources/application.properties`
-- [ ] T009 [P] Implement the `Sisu` integer-money value type, the `Error` response schema, and
+- [X] T009 [P] Implement the `Sisu` integer-money value type, the `Error` response schema, and
   global exception mappers in `sisu-backend/src/main/java/market/sisu/common/`
-- [ ] T010 [P] Create the `User` Panache entity and repository with a unique index on `username` in
+- [X] T010 [P] Create the `User` Panache entity and repository with a unique index on `username` in
   `sisu-backend/src/main/java/market/sisu/user/User.java` and `UserRepository.java`
-- [ ] T011 [P] Create the `Prediction` Panache entity and repository with an index on `status` in
+- [X] T011 [P] Create the `Prediction` Panache entity and repository with an index on `status` in
   `sisu-backend/src/main/java/market/sisu/prediction/Prediction.java` and
   `PredictionRepository.java`
-- [ ] T012 [P] Create the `Wager` Panache entity and repository with an index on `userId` in
+- [X] T012 [P] Create the `Wager` Panache entity and repository with an index on `userId` in
   `sisu-backend/src/main/java/market/sisu/wager/Wager.java` and `WagerRepository.java`
-- [ ] T013 [P] Create the append-only `Transaction` Panache entity and repository in
+- [X] T013 [P] Create the append-only `Transaction` Panache entity and repository in
   `sisu-backend/src/main/java/market/sisu/transaction/Transaction.java` and
   `TransactionRepository.java`
-- [ ] T014 Implement a MongoDB `ClientSession` transaction helper enforcing the cross-entity
+- [X] T014 Implement a MongoDB `ClientSession` transaction helper enforcing the cross-entity
   invariants from `data-model.md` (atomic balance/wager/pool/ledger writes) in
   `sisu-backend/src/main/java/market/sisu/common/MongoTransactions.java` (depends on T008)
-- [ ] T015 [P] Configure JWT issuance/validation (SmallRye JWT) and the httpOnly/Secure/
+- [X] T015 [P] Configure JWT issuance/validation (SmallRye JWT) and the httpOnly/Secure/
   SameSite=Strict session-cookie filter in `sisu-backend/src/main/java/market/sisu/auth/JwtService.java`
   and `SessionCookieFilter.java`
-- [ ] T016 [P] Create a `login_attempts` collection with a 15-minute TTL index for rate limiting in
+- [X] T016 [P] Create a `login_attempts` collection with a 15-minute TTL index for rate limiting in
   `sisu-backend/src/main/java/market/sisu/auth/LoginAttempt.java` and `LoginAttemptRepository.java`
-- [ ] T017 Implement the SSE connection registry and event broadcaster
+- [X] T017 Implement the SSE connection registry and event broadcaster
   (`balance-updated`, `odds-updated`, `prediction-status-changed`) per `contracts/realtime.md` in
   `sisu-backend/src/main/java/market/sisu/realtime/`
-- [ ] T018 [P] Configure `quarkus-smallrye-openapi` generation to match `contracts/openapi.yaml` in
+- [X] T018 [P] Configure `quarkus-smallrye-openapi` generation to match `contracts/openapi.yaml` in
   `sisu-backend/src/main/resources/application.properties`
-- [ ] T019 [P] Create a typed REST API client wrapper (fetch with credentials, error decoding) in
+- [X] T019 [P] Create a typed REST API client wrapper (fetch with credentials, error decoding) in
   `sisu-frontend/src/api/client.ts`
-- [ ] T020 [P] Create the Finnish string dictionary module in `sisu-frontend/src/i18n/strings.fi.ts`
-- [ ] T021 [P] Set up the React Router shell, TanStack Query provider, and base app layout in
+- [X] T020 [P] Create the Finnish string dictionary module in `sisu-frontend/src/i18n/strings.fi.ts`
+- [X] T021 [P] Set up the React Router shell, TanStack Query provider, and base app layout in
   `sisu-frontend/src/App.tsx` and `sisu-frontend/src/main.tsx`
-- [ ] T022 [P] Implement the `useLiveUpdates` SSE hook (EventSource connection dispatching into the
+- [X] T022 [P] Implement the `useLiveUpdates` SSE hook (EventSource connection dispatching into the
   TanStack Query cache) per `contracts/realtime.md` in `sisu-frontend/src/hooks/useLiveUpdates.ts`
 
 **Checkpoint**: Foundation ready — user story implementation can now begin.
