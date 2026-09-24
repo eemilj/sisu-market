@@ -1,0 +1,5 @@
+* text=auto
+# Shell scripts run inside Linux containers and CI; keep LF endings on every platform.
+*.sh text eol=lf
+sisu-backend/mvnw text eol=lf
+sisu-backend/mvnw.cmd text eol=crlf

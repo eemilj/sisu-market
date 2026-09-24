@@ -22,3 +22,31 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+
+# Maven wrapper jar is downloaded on demand
+!.mvn/wrapper/maven-wrapper.jar
+
+# Build output
+target/
+build/
+dist/
+coverage/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Local environment / secrets (Constitution V)
+.env
+.env.*
+!.env.example
+*.pem
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
