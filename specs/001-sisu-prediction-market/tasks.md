@@ -113,32 +113,32 @@ immediately, independent of any other feature.
 
 ### Tests for User Story 1
 
-- [ ] T023 [P] [US1] Contract test for `POST /api/auth/register` (success, duplicate username,
+- [X] T023 [P] [US1] Contract test for `POST /api/auth/register` (success, duplicate username,
   empty-field validation) in `sisu-backend/src/test/java/market/sisu/contract/AuthRegisterContractTest.java`
-- [ ] T024 [P] [US1] Contract test for `POST /api/auth/login` (success, single generic 401, 429
+- [X] T024 [P] [US1] Contract test for `POST /api/auth/login` (success, single generic 401, 429
   after 5 attempts) in `sisu-backend/src/test/java/market/sisu/contract/AuthLoginContractTest.java`
-- [ ] T025 [P] [US1] Unit test for the starting-balance grant and username-uniqueness check in
+- [X] T025 [P] [US1] Unit test for the starting-balance grant and username-uniqueness check in
   `sisu-backend/src/test/java/market/sisu/unit/UserServiceTest.java`
-- [ ] T026 [P] [US1] Unit test for the 5-attempts/15-minute login rate limit using an injected
+- [X] T026 [P] [US1] Unit test for the 5-attempts/15-minute login rate limit using an injected
   `Clock` in `sisu-backend/src/test/java/market/sisu/unit/LoginRateLimiterTest.java`
 
 ### Implementation for User Story 1
 
-- [ ] T027 [US1] Implement `UserService.register` (uniqueness check, password hashing, starting-grant
+- [X] T027 [US1] Implement `UserService.register` (uniqueness check, password hashing, starting-grant
   transaction inserting `User` + `Transaction`) in
   `sisu-backend/src/main/java/market/sisu/user/UserService.java` (depends on T010, T013, T014)
-- [ ] T028 [US1] Implement `AuthService.login`/`logout` (credential check, JWT cookie issuance) in
+- [X] T028 [US1] Implement `AuthService.login`/`logout` (credential check, JWT cookie issuance) in
   `sisu-backend/src/main/java/market/sisu/auth/AuthService.java` (depends on T010, T015)
-- [ ] T029 [US1] Implement `LoginRateLimiter` enforcing FR-037 in
+- [X] T029 [US1] Implement `LoginRateLimiter` enforcing FR-037 in
   `sisu-backend/src/main/java/market/sisu/auth/LoginRateLimiter.java` (depends on T016)
-- [ ] T030 [US1] Implement `AuthResource` (`/api/auth/register`, `/api/auth/login`,
+- [X] T030 [US1] Implement `AuthResource` (`/api/auth/register`, `/api/auth/login`,
   `/api/auth/logout`) in `sisu-backend/src/main/java/market/sisu/auth/AuthResource.java` (depends
   on T027, T028, T029)
-- [ ] T031 [P] [US1] Build the Register page in `sisu-frontend/src/pages/Register.tsx`
-- [ ] T032 [P] [US1] Build the Login page in `sisu-frontend/src/pages/Login.tsx`
-- [ ] T033 [US1] Implement the `useAuth` hook (session state, current balance) in
+- [X] T031 [P] [US1] Build the Register page in `sisu-frontend/src/pages/Register.tsx`
+- [X] T032 [P] [US1] Build the Login page in `sisu-frontend/src/pages/Login.tsx`
+- [X] T033 [US1] Implement the `useAuth` hook (session state, current balance) in
   `sisu-frontend/src/hooks/useAuth.ts` (depends on T019, T030)
-- [ ] T034 [US1] Build the `BalanceBadge` component subscribed to live balance updates in
+- [X] T034 [US1] Build the `BalanceBadge` component subscribed to live balance updates in
   `sisu-frontend/src/components/BalanceBadge.tsx` (depends on T022, T033)
 
 **Checkpoint**: User Story 1 is fully functional and independently testable.

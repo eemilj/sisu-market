@@ -16,6 +16,24 @@ export const fi = {
     register: 'Luo tili',
     logout: 'Kirjaudu ulos',
   },
+  auth: {
+    registerTitle: 'Luo tili',
+    registerIntro: 'Valitse käyttäjätunnus ja salasana. Saat heti aloitussaldon sisua.',
+    loginTitle: 'Kirjaudu sisään',
+    loginIntro: 'Kirjaudu sisään nähdäksesi saldosi.',
+    username: 'Käyttäjätunnus',
+    password: 'Salasana',
+    passwordHint: 'Vähintään 8 merkkiä.',
+    submitRegister: 'Luo tili',
+    submitLogin: 'Kirjaudu sisään',
+    submitting: 'Hetki…',
+    toLogin: 'Onko sinulla jo tili? Kirjaudu sisään.',
+    toRegister: 'Eikö sinulla ole vielä tiliä? Luo tili.',
+    /** Shown under the form while the cooldown from too many attempts lasts. */
+    retryAfterMinutes: (minutes: number) => `Yritä uudelleen noin ${minutes} minuutin kuluttua.`,
+    balanceLabel: 'Saldosi',
+    loggedInAs: (username: string) => `Kirjautuneena: ${username}`,
+  },
   home: {
     title: 'Ennusta tulevaisuutta sisulla',
     intro:
