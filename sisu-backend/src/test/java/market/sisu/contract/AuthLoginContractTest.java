@@ -106,6 +106,19 @@ class AuthLoginContractTest {
                 .header("Set-Cookie", containsString("Max-Age=0"));
     }
 
+    @Test
+    void logoutWithAFormBodyIsStillRejectedAsCsrfDefence() {
+        // The bodiless exemption in SessionCookieFilter must not open the door to actual
+        // form submissions: a non-JSON media type WITH bytes is still a 415.
+        given().contentType("application/x-www-form-urlencoded")
+                .formParam("next", "/")
+                .when()
+                .post("/api/auth/logout")
+                .then()
+                .statusCode(415)
+                .body("code", equalTo("UNSUPPORTED_MEDIA_TYPE"));
+    }
+
     private static void register(String username, String password) {
         given().contentType("application/json")
                 .body("""
