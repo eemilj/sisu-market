@@ -155,23 +155,23 @@ visitor, independent of wagering or account creation.
 
 ### Tests for User Story 2
 
-- [ ] T035 [P] [US2] Contract test for `GET /api/predictions` including the `status` filter in
+- [X] T035 [P] [US2] Contract test for `GET /api/predictions` including the `status` filter in
   `sisu-backend/src/test/java/market/sisu/contract/PredictionListContractTest.java`
-- [ ] T036 [P] [US2] Contract test for `GET /api/predictions/{id}` in
+- [X] T036 [P] [US2] Contract test for `GET /api/predictions/{id}` in
   `sisu-backend/src/test/java/market/sisu/contract/PredictionDetailContractTest.java`
 
 ### Implementation for User Story 2
 
-- [ ] T037 [US2] Implement `PredictionQueryService` (list with status filter, detail, odds derived
+- [X] T037 [US2] Implement `PredictionQueryService` (list with status filter, detail, odds derived
   from stored pool totals) in
   `sisu-backend/src/main/java/market/sisu/prediction/PredictionQueryService.java` (depends on T011)
-- [ ] T038 [US2] Implement the `PredictionResource` GET endpoints in
+- [X] T038 [US2] Implement the `PredictionResource` GET endpoints in
   `sisu-backend/src/main/java/market/sisu/prediction/PredictionResource.java` (depends on T037)
-- [ ] T039 [P] [US2] Build the `PredictionList` page with a status filter in
+- [X] T039 [P] [US2] Build the `PredictionList` page with a status filter in
   `sisu-frontend/src/pages/PredictionList.tsx` (depends on T019)
-- [ ] T040 [P] [US2] Build the `PredictionDetail` page in
+- [X] T040 [P] [US2] Build the `PredictionDetail` page in
   `sisu-frontend/src/pages/PredictionDetail.tsx` (depends on T019)
-- [ ] T041 [P] [US2] Build the `OddsBar` component in `sisu-frontend/src/components/OddsBar.tsx`
+- [X] T041 [P] [US2] Build the `OddsBar` component in `sisu-frontend/src/components/OddsBar.tsx`
 
 **Checkpoint**: User Stories 1 AND 2 both work independently.
 

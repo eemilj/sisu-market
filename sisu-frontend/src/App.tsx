@@ -5,6 +5,8 @@ import { useAuth } from './hooks/useAuth';
 import { useLiveUpdates } from './hooks/useLiveUpdates';
 import { fi } from './i18n/strings.fi';
 import Login from './pages/Login';
+import PredictionDetail from './pages/PredictionDetail';
+import PredictionList from './pages/PredictionList';
 import Register from './pages/Register';
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -74,7 +76,7 @@ function Layout({ children }: { children: ReactNode }) {
           <nav aria-label={fi.app.mainNavigation} className="flex flex-wrap items-center gap-2">
             <ul className="flex flex-wrap gap-1">
               <li>
-                <NavLink to="/" end className={navLinkClass}>
+                <NavLink to="/predictions" className={navLinkClass}>
                   {fi.nav.predictions}
                 </NavLink>
               </li>
@@ -98,22 +100,30 @@ function Home() {
         {fi.home.title}
       </h1>
       <p className="mt-2 max-w-prose text-slate-700">{fi.home.intro}</p>
-      {!isLoading && !isLoggedIn && (
-        <p className="mt-4 flex flex-wrap gap-2">
-          <Link
-            to="/register"
-            className="rounded bg-sky-800 px-4 py-2 font-medium text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
-          >
-            {fi.nav.register}
-          </Link>
-          <Link
-            to="/login"
-            className="rounded border border-sky-800 px-4 py-2 font-medium text-sky-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
-          >
-            {fi.nav.login}
-          </Link>
-        </p>
-      )}
+      <p className="mt-4 flex flex-wrap gap-2">
+        <Link
+          to="/predictions"
+          className="rounded bg-sky-800 px-4 py-2 font-medium text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
+        >
+          {fi.predictions.browse}
+        </Link>
+        {!isLoading && !isLoggedIn && (
+          <>
+            <Link
+              to="/register"
+              className="rounded border border-sky-800 px-4 py-2 font-medium text-sky-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
+            >
+              {fi.nav.register}
+            </Link>
+            <Link
+              to="/login"
+              className="rounded border border-sky-800 px-4 py-2 font-medium text-sky-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
+            >
+              {fi.nav.login}
+            </Link>
+          </>
+        )}
+      </p>
     </section>
   );
 }
@@ -138,6 +148,8 @@ export default function App() {
     <Layout>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/predictions" element={<PredictionList />} />
+        <Route path="/predictions/:id" element={<PredictionDetail />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
         <Route path="*" element={<NotFound />} />

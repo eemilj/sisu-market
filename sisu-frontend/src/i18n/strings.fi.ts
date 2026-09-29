@@ -39,6 +39,42 @@ export const fi = {
     intro:
       'Sisu Market on ennustemarkkina, jossa panostat leikkirahaa kyllä/ei-kysymyksiin ja kerrytät sisua osumalla oikeaan.',
   },
+  predictions: {
+    listTitle: 'Ennusteet',
+    listIntro: 'Selaa kyllä/ei-kysymyksiä ja niiden tämänhetkisiä kertoimia.',
+    browse: 'Selaa ennusteita',
+    filterLabel: 'Näytä ennusteet tilan mukaan',
+    filterAll: 'Kaikki',
+    empty: 'Tällä suodattimella ei löytynyt ennusteita.',
+    loadFailed: 'Ennusteiden lataaminen epäonnistui.',
+    retry: 'Yritä uudelleen',
+    closingAt: 'Sulkeutumisaika',
+    totalWagered: 'Panostettu yhteensä',
+    status: 'Tila',
+    description: 'Kuvaus',
+    resolutionCriteria: 'Ratkaisuperuste',
+    creator: 'Luoja',
+    deletedCreator: 'Poistettu käyttäjä',
+    winningOutcome: 'Toteutunut lopputulos',
+    backToList: 'Takaisin ennusteisiin',
+    notFoundTitle: 'Ennustetta ei löytynyt',
+    notFoundBody: 'Ennustetta ei ole olemassa, tai osoite on virheellinen.',
+  },
+  odds: {
+    title: 'Kertoimet',
+    /** "63,2 %" */
+    percent: (value: number) =>
+      `${new Intl.NumberFormat('fi-FI', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value)} %`,
+    /** Screen-reader summary of the whole bar. */
+    summary: (yes: string, no: string) => `Kertoimet: kyllä ${yes}, ei ${no}`,
+  },
+  date: {
+    /** "30.9.2026 klo 14.00" */
+    dateTime: (iso: string) =>
+      new Intl.DateTimeFormat('fi-FI', { dateStyle: 'short', timeStyle: 'short' }).format(
+        new Date(iso),
+      ),
+  },
   notFound: {
     title: 'Sivua ei löytynyt',
     body: 'Etsimääsi sivua ei ole olemassa.',
@@ -70,6 +106,7 @@ export const fi = {
     UNAUTHENTICATED: 'Kirjaudu sisään jatkaaksesi.',
     FORBIDDEN: 'Sinulla ei ole oikeutta tähän toimintoon.',
     NOT_FOUND: 'Kohdetta ei löytynyt.',
+    PREDICTION_NOT_FOUND: 'Ennustetta ei löytynyt.',
     INSUFFICIENT_BALANCE: 'Saldosi ei riitä tähän panokseen.',
     USERNAME_TAKEN: 'Käyttäjätunnus on jo käytössä.',
     INVALID_CREDENTIALS: 'Virheellinen käyttäjätunnus tai salasana.',
