@@ -4,6 +4,7 @@ import BalanceBadge from './components/BalanceBadge';
 import { useAuth } from './hooks/useAuth';
 import { useLiveUpdates } from './hooks/useLiveUpdates';
 import { fi } from './i18n/strings.fi';
+import CreatePrediction from './pages/CreatePrediction';
 import Login from './pages/Login';
 import PredictionDetail from './pages/PredictionDetail';
 import PredictionList from './pages/PredictionList';
@@ -40,6 +41,9 @@ function AuthNav() {
 
   return (
     <div className="flex flex-wrap items-center gap-2">
+      <NavLink to="/create-prediction" className={navLinkClass}>
+        {fi.nav.createPrediction}
+      </NavLink>
       <span
         className="hidden text-sm text-slate-600 sm:inline"
         title={fi.auth.loggedInAs(user.username)}
@@ -149,6 +153,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/predictions" element={<PredictionList />} />
+        <Route path="/create-prediction" element={<CreatePrediction />} />
         <Route path="/predictions/:id" element={<PredictionDetail />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />

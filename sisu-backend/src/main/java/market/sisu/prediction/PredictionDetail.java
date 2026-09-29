@@ -22,4 +22,22 @@ public record PredictionDetail(
         String description,
         String resolutionCriteria,
         String creatorUsername,
-        Outcome winningOutcome) {}
+        Outcome winningOutcome) {
+
+    /** The prediction as seen at {@code now}; {@code creatorUsername} is resolved by the caller. */
+    public static PredictionDetail of(Prediction prediction, Instant now, String creatorUsername) {
+        PredictionSummary summary = PredictionSummary.of(prediction, now);
+        return new PredictionDetail(
+                summary.id(),
+                summary.question(),
+                summary.status(),
+                summary.closingAt(),
+                summary.totalSisuWagered(),
+                summary.oddsYesPercent(),
+                summary.oddsNoPercent(),
+                prediction.description,
+                prediction.resolutionCriteria,
+                creatorUsername,
+                prediction.winningOutcome);
+    }
+}

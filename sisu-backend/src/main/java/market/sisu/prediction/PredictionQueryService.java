@@ -5,7 +5,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import market.sisu.common.ApiException;
-import market.sisu.prediction.OddsCalculator.Odds;
 import market.sisu.user.User;
 import market.sisu.user.UserRepository;
 import org.bson.types.ObjectId;
@@ -32,7 +31,7 @@ public class PredictionQueryService {
     public List<PredictionSummary> list(PredictionStatus status) {
         Instant now = clock.instant();
         return predictions.findForListing(status, now).stream()
-                .map(prediction -> summary(prediction, now))
+                .map(prediction -> PredictionSummary.of(prediction, now))
                 .toList();
     }
 
@@ -42,43 +41,8 @@ public class PredictionQueryService {
         if (prediction == null) {
             throw ApiException.notFound("PREDICTION_NOT_FOUND", "No such prediction");
         }
-        PredictionSummary summary = summary(prediction, clock.instant());
         User creator = prediction.creatorId == null ? null : users.findById(prediction.creatorId);
-        return new PredictionDetail(
-                summary.id(),
-                summary.question(),
-                summary.status(),
-                summary.closingAt(),
-                summary.totalSisuWagered(),
-                summary.oddsYesPercent(),
-                summary.oddsNoPercent(),
-                prediction.description,
-                prediction.resolutionCriteria,
-                // Deleted accounts have their username scrubbed to null (FR-033).
-                creator == null ? null : creator.username,
-                prediction.winningOutcome);
-    }
-
-    /**
-     * The status users should see: an {@code OPEN} prediction stops being open the instant its
-     * {@code closingAt} passes (FR-025), even if the closing job has not caught up yet.
-     */
-    static PredictionStatus effectiveStatus(Prediction prediction, Instant now) {
-        if (prediction.status == PredictionStatus.OPEN && !prediction.closingAt.isAfter(now)) {
-            return PredictionStatus.CLOSED;
-        }
-        return prediction.status;
-    }
-
-    private static PredictionSummary summary(Prediction prediction, Instant now) {
-        Odds odds = OddsCalculator.odds(prediction.yesPoolSisu, prediction.noPoolSisu);
-        return new PredictionSummary(
-                prediction.id.toHexString(),
-                prediction.question,
-                effectiveStatus(prediction, now),
-                prediction.closingAt,
-                Math.addExact(prediction.yesPoolSisu, prediction.noPoolSisu),
-                odds.yesPercent(),
-                odds.noPercent());
+        // Deleted accounts have their username scrubbed to null (FR-033).
+        return PredictionDetail.of(prediction, clock.instant(), creator == null ? null : creator.username);
     }
 }

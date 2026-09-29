@@ -232,17 +232,17 @@ predictions list, independent of whether wagering exists yet.
 
 ### Tests for User Story 4
 
-- [ ] T051 [P] [US4] Contract test for `POST /api/predictions` (success, empty fields, past closing
+- [X] T051 [P] [US4] Contract test for `POST /api/predictions` (success, empty fields, past closing
   date) in `sisu-backend/src/test/java/market/sisu/contract/CreatePredictionContractTest.java`
 
 ### Implementation for User Story 4
 
-- [ ] T052 [US4] Implement `PredictionService.create` (validation, creator attribution) in
+- [X] T052 [US4] Implement `PredictionService.create` (validation, creator attribution) in
   `sisu-backend/src/main/java/market/sisu/prediction/PredictionService.java` (depends on T011)
-- [ ] T053 [US4] Implement the `PredictionResource` POST endpoint in
+- [X] T053 [US4] Implement the `PredictionResource` POST endpoint in
   `sisu-backend/src/main/java/market/sisu/prediction/PredictionResource.java` (depends on T038,
   T052)
-- [ ] T054 [P] [US4] Build the `CreatePrediction` page/form in
+- [X] T054 [P] [US4] Build the `CreatePrediction` page/form in
   `sisu-frontend/src/pages/CreatePrediction.tsx` (depends on T019)
 
 **Checkpoint**: User Stories 1–4 all work independently.

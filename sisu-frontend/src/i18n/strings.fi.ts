@@ -60,6 +60,22 @@ export const fi = {
     notFoundTitle: 'Ennustetta ei löytynyt',
     notFoundBody: 'Ennustetta ei ole olemassa, tai osoite on virheellinen.',
   },
+  createPrediction: {
+    title: 'Luo ennuste',
+    intro:
+      'Kirjoita kyllä/ei-kysymys, jonka lopputulos selviää myöhemmin. Muut voivat panostaa sisua kumpaan tahansa vaihtoehtoon sulkeutumisaikaan asti.',
+    loginRequired: 'Kirjaudu sisään luodaksesi ennusteen.',
+    question: 'Kysymys',
+    questionHint: 'Kyllä/ei-kysymys, esim. "Sataako Helsingissä juhannuspäivänä?"',
+    description: 'Kuvaus',
+    descriptionHint: 'Vapaaehtoinen taustatieto kysymyksestä.',
+    resolutionCriteria: 'Ratkaisuperuste',
+    resolutionCriteriaHint: 'Miten ja mistä lähteestä lopputulos ratkaistaan.',
+    closingAt: 'Sulkeutumisaika',
+    closingAtHint: 'Panoksia voi asettaa tähän hetkeen asti.',
+    submit: 'Luo ennuste',
+    submitting: 'Luodaan…',
+  },
   odds: {
     title: 'Kertoimet',
     /** "63,2 %" */
@@ -107,6 +123,9 @@ export const fi = {
     FORBIDDEN: 'Sinulla ei ole oikeutta tähän toimintoon.',
     NOT_FOUND: 'Kohdetta ei löytynyt.',
     PREDICTION_NOT_FOUND: 'Ennustetta ei löytynyt.',
+    QUESTION_REQUIRED: 'Kirjoita kysymys.',
+    RESOLUTION_CRITERIA_REQUIRED: 'Kerro, miten lopputulos ratkaistaan.',
+    CLOSING_DATE_NOT_IN_FUTURE: 'Sulkeutumisajan on oltava tulevaisuudessa.',
     INSUFFICIENT_BALANCE: 'Saldosi ei riitä tähän panokseen.',
     USERNAME_TAKEN: 'Käyttäjätunnus on jo käytössä.',
     INVALID_CREDENTIALS: 'Virheellinen käyttäjätunnus tai salasana.',
