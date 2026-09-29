@@ -191,6 +191,13 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/PredictionSummary'
+        '422':
+          description: >
+            `status` is not one of OPEN, CLOSED, RESOLVED, CANCELLED (code `VALIDATION_FAILED`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     post:
       tags: [predictions]
       summary: Create a prediction (FR-012, FR-013, FR-014)
