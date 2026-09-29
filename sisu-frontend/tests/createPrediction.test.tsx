@@ -130,6 +130,39 @@ describe('CreatePrediction', () => {
     });
   });
 
+  it('counts characters and blocks text over the limits without cutting off pasted text', async () => {
+    const fetchMock = mockApi();
+    const user = userEvent.setup();
+    renderPage();
+
+    const question = await screen.findByLabelText(new RegExp(fi.createPrediction.question));
+    expect(screen.getByText(fi.createPrediction.characterCount(0, 200))).toBeInTheDocument();
+    expect(screen.getByText(fi.createPrediction.characterCount(0, 2000))).toBeInTheDocument();
+    expect(screen.getByText(fi.createPrediction.characterCount(0, 1000))).toBeInTheDocument();
+
+    await user.click(question);
+    await user.paste('k'.repeat(201));
+    await user.click(screen.getByLabelText(new RegExp(fi.createPrediction.description)));
+    await user.paste('d'.repeat(2001));
+    await user.click(screen.getByLabelText(new RegExp(fi.createPrediction.resolutionCriteria)));
+    await user.paste('r'.repeat(1001));
+    await user.type(
+      screen.getByLabelText(new RegExp(fi.createPrediction.closingAt)),
+      '2099-06-20T12:00',
+    );
+
+    expect(question).toHaveValue('k'.repeat(201));
+    expect(screen.getByText(fi.createPrediction.characterCount(201, 200))).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: fi.createPrediction.submit }));
+
+    expect(screen.getByText(errorMessage('QUESTION_TOO_LONG'))).toBeInTheDocument();
+    expect(screen.getByText(errorMessage('DESCRIPTION_TOO_LONG'))).toBeInTheDocument();
+    expect(screen.getByText(errorMessage('RESOLUTION_CRITERIA_TOO_LONG'))).toBeInTheDocument();
+    expect(question).toHaveAttribute('aria-invalid', 'true');
+    expect(postCalls(fetchMock)).toHaveLength(0);
+  });
+
   it('shows a server-side field error next to its field', async () => {
     mockApi({
       createResponse: () =>

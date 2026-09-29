@@ -98,7 +98,8 @@ public class PredictionResource {
                     @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ApiError.class)))
     @APIResponse(
             responseCode = "422",
-            description = "Empty question/resolution criteria, or a closing date that isn't in the future",
+            description = "Empty question/resolution criteria, a field over its maximum length, or a closing date"
+                    + " that isn't in the future",
             content =
                     @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ApiError.class)))
     public Response create(CreatePredictionRequest body, @Context UriInfo uri) {

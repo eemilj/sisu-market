@@ -5,15 +5,25 @@ import { useAuth } from '../hooks/useAuth';
 import { useCreatePrediction } from '../hooks/usePredictions';
 import { errorMessage, fi } from '../i18n/strings.fi';
 
-type Field = 'question' | 'resolutionCriteria' | 'closingAt';
+type Field = 'question' | 'description' | 'resolutionCriteria' | 'closingAt';
 type FieldErrors = Partial<Record<Field, string>>;
 
 /** Server error codes that belong to one form field, so they are shown next to it. */
 const FIELD_FOR_CODE: Record<string, Field> = {
   QUESTION_REQUIRED: 'question',
+  QUESTION_TOO_LONG: 'question',
+  DESCRIPTION_TOO_LONG: 'description',
   RESOLUTION_CRITERIA_REQUIRED: 'resolutionCriteria',
+  RESOLUTION_CRITERIA_TOO_LONG: 'resolutionCriteria',
   CLOSING_DATE_NOT_IN_FUTURE: 'closingAt',
 };
+
+/** Maximum lengths after trimming (FR-038); mirrors `PredictionService` on the backend. */
+const MAX_LENGTH = {
+  question: 200,
+  description: 2000,
+  resolutionCriteria: 1000,
+} as const;
 
 const inputClass =
   'rounded border border-slate-300 px-3 py-2 aria-[invalid=true]:border-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700';
@@ -24,14 +34,28 @@ function toLocalInputValue(date: Date): string {
   return local.toISOString().slice(0, 16);
 }
 
+interface Draft {
+  question: string;
+  description: string;
+  resolutionCriteria: string;
+  closingAt: string;
+}
+
 /** The same rules the backend enforces (FR-013, FR-014), checked first for instant feedback. */
-function validate(question: string, resolutionCriteria: string, closingAt: string): FieldErrors {
+function validate({ question, description, resolutionCriteria, closingAt }: Draft): FieldErrors {
   const errors: FieldErrors = {};
   if (!question.trim()) {
     errors.question = errorMessage('QUESTION_REQUIRED');
+  } else if (question.trim().length > MAX_LENGTH.question) {
+    errors.question = errorMessage('QUESTION_TOO_LONG');
+  }
+  if (description.trim().length > MAX_LENGTH.description) {
+    errors.description = errorMessage('DESCRIPTION_TOO_LONG');
   }
   if (!resolutionCriteria.trim()) {
     errors.resolutionCriteria = errorMessage('RESOLUTION_CRITERIA_REQUIRED');
+  } else if (resolutionCriteria.trim().length > MAX_LENGTH.resolutionCriteria) {
+    errors.resolutionCriteria = errorMessage('RESOLUTION_CRITERIA_TOO_LONG');
   }
   const closing = closingAt ? new Date(closingAt) : null;
   if (!closing || Number.isNaN(closing.getTime()) || closing.getTime() <= Date.now()) {
@@ -85,7 +109,7 @@ export default function CreatePrediction() {
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    const errors = validate(question, resolutionCriteria, closingAt);
+    const errors = validate({ question, description, resolutionCriteria, closingAt });
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) {
       return;
@@ -140,6 +164,8 @@ export default function CreatePrediction() {
           label={fi.createPrediction.question}
           hint={fi.createPrediction.questionHint}
           error={fieldErrors.question}
+          length={question.trim().length}
+          maxLength={MAX_LENGTH.question}
           required
         >
           {(props) => (
@@ -157,6 +183,9 @@ export default function CreatePrediction() {
           id="prediction-description"
           label={fi.createPrediction.description}
           hint={fi.createPrediction.descriptionHint}
+          error={fieldErrors.description}
+          length={description.trim().length}
+          maxLength={MAX_LENGTH.description}
         >
           {(props) => (
             <textarea
@@ -174,6 +203,8 @@ export default function CreatePrediction() {
           label={fi.createPrediction.resolutionCriteria}
           hint={fi.createPrediction.resolutionCriteriaHint}
           error={fieldErrors.resolutionCriteria}
+          length={resolutionCriteria.trim().length}
+          maxLength={MAX_LENGTH.resolutionCriteria}
           required
         >
           {(props) => (
@@ -226,13 +257,19 @@ interface ControlProps {
   'aria-describedby': string;
 }
 
-/** Label, hint and error wiring shared by every field, so each control is fully announced. */
+/**
+ * Label, hint and error wiring shared by every field, so each control is fully announced. With
+ * `maxLength`, a character counter joins the hint. It deliberately does not cap typing: a hard
+ * `maxLength` attribute would silently cut off pasted text.
+ */
 function FormField({
   id,
   label,
   hint,
   error,
   required,
+  length,
+  maxLength,
   children,
 }: {
   id: string;
@@ -240,8 +277,11 @@ function FormField({
   hint: string;
   error?: string;
   required?: boolean;
+  length?: number;
+  maxLength?: number;
   children: (props: ControlProps) => ReactNode;
 }) {
+  const overLimit = maxLength !== undefined && (length ?? 0) > maxLength;
   const hintId = `${id}-hint`;
   const errorId = `${id}-error`;
   return (
@@ -257,8 +297,13 @@ function FormField({
         'aria-invalid': Boolean(error),
         'aria-describedby': error ? `${hintId} ${errorId}` : hintId,
       })}
-      <p id={hintId} className="text-sm text-slate-600">
-        {hint}
+      <p id={hintId} className="flex justify-between gap-4 text-sm text-slate-600">
+        <span>{hint}</span>
+        {maxLength !== undefined && (
+          <span className={overLimit ? 'shrink-0 font-medium text-red-700' : 'shrink-0'}>
+            {fi.createPrediction.characterCount(length ?? 0, maxLength)}
+          </span>
+        )}
       </p>
       {error && (
         <p id={errorId} className="text-sm font-medium text-red-700">

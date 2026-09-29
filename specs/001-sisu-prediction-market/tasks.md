@@ -245,6 +245,18 @@ predictions list, independent of whether wagering exists yet.
 - [X] T054 [P] [US4] Build the `CreatePrediction` page/form in
   `sisu-frontend/src/pages/CreatePrediction.tsx` (depends on T019)
 
+### Text length limits for User Story 4 (FR-038, added 2026-09-29)
+
+- [X] T079 [P] [US4] Tests for the FR-038 length limits: boundary cases (at the limit, one over,
+  measured after trimming) in `sisu-backend/src/test/java/market/sisu/unit/PredictionServiceTest.java`,
+  the `QUESTION_TOO_LONG` / `DESCRIPTION_TOO_LONG` / `RESOLUTION_CRITERIA_TOO_LONG` codes in
+  `sisu-backend/src/test/java/market/sisu/contract/CreatePredictionContractTest.java`, and the
+  character counters in `sisu-frontend/tests/createPrediction.test.tsx`
+- [X] T080 [US4] Enforce the FR-038 length limits (question 200, description 2000, resolution
+  criteria 1000) in `PredictionService.create`, declare them as `maxLength` on
+  `CreatePredictionRequest` and in `contracts/openapi.yaml`, and add per-field character counters
+  and pre-submit checks to `sisu-frontend/src/pages/CreatePrediction.tsx` (depends on T052, T054)
+
 **Checkpoint**: User Stories 1–4 all work independently.
 
 ---

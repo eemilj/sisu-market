@@ -98,6 +98,51 @@ class PredictionServiceTest {
     }
 
     @Test
+    void acceptsEachFieldAtExactlyItsMaximumLength() {
+        PredictionDetail detail = service.create(
+                creator.id,
+                new CreatePredictionRequest(
+                        "k".repeat(PredictionService.QUESTION_MAX_LENGTH),
+                        "d".repeat(PredictionService.DESCRIPTION_MAX_LENGTH),
+                        "r".repeat(PredictionService.RESOLUTION_CRITERIA_MAX_LENGTH),
+                        NOW.plusSeconds(60)));
+
+        assertEquals(PredictionService.QUESTION_MAX_LENGTH, detail.question().length());
+    }
+
+    @Test
+    void rejectsFieldsOverTheirMaximumLength() {
+        assertRejected(
+                "QUESTION_TOO_LONG",
+                new CreatePredictionRequest(
+                        "k".repeat(PredictionService.QUESTION_MAX_LENGTH + 1), "", "Peruste", NOW.plusSeconds(60)));
+        assertRejected(
+                "DESCRIPTION_TOO_LONG",
+                new CreatePredictionRequest(
+                        "Kysymys?",
+                        "d".repeat(PredictionService.DESCRIPTION_MAX_LENGTH + 1),
+                        "Peruste",
+                        NOW.plusSeconds(60)));
+        assertRejected(
+                "RESOLUTION_CRITERIA_TOO_LONG",
+                new CreatePredictionRequest(
+                        "Kysymys?",
+                        "",
+                        "r".repeat(PredictionService.RESOLUTION_CRITERIA_MAX_LENGTH + 1),
+                        NOW.plusSeconds(60)));
+    }
+
+    @Test
+    void measuresLengthAfterTrimming() {
+        String padded = "  " + "k".repeat(PredictionService.QUESTION_MAX_LENGTH) + "  ";
+
+        PredictionDetail detail =
+                service.create(creator.id, new CreatePredictionRequest(padded, "", "Peruste", NOW.plusSeconds(60)));
+
+        assertEquals(PredictionService.QUESTION_MAX_LENGTH, detail.question().length());
+    }
+
+    @Test
     void rejectsAClosingDateThatIsNotInTheFuture() {
         assertRejected(
                 "CLOSING_DATE_NOT_IN_FUTURE",

@@ -70,6 +70,14 @@ description that the user and assistant had already agreed on earlier in this co
   cancelled prediction is terminal and already refunded, so a new wager on one would contradict
   FR-036.
 
+### Session 2026-09-29
+
+- Q: Should a prediction's text fields have maximum lengths, and if so how long? → A: Yes — the
+  question at most 200 characters (it is shown on list cards and should read like a one-sentence
+  headline), the description at most 2000 (optional background, a few paragraphs), and the
+  resolution criteria at most 1000 (how and from which source the outcome is decided). Lengths are
+  measured after leading/trailing whitespace is trimmed. See FR-038.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Create an account and see your sisu balance (Priority: P1)
@@ -179,6 +187,10 @@ confirming it appears in the open predictions list, independent of whether wager
    field.
 3. **Given** a logged-in user, **When** they submit a closing date that is in the past, **Then**
    creation is rejected with a clear error.
+4. **Given** a logged-in user, **When** they submit a question, description, or resolution criteria
+   longer than its maximum length, **Then** creation is rejected with a clear error identifying the
+   field and its limit, and while typing they can see how many characters each limited field has
+   used.
 
 ---
 
@@ -326,13 +338,17 @@ transaction history after some wagers and balance changes already exist.
   by any user — back to that wager's owner.
 - **FR-037**: System MUST block further login attempts for a username/IP pair for 15 minutes after
   5 consecutive failed attempts, even if a subsequent attempt uses the correct credentials.
+- **FR-038**: System MUST reject creating a prediction whose question is longer than 200
+  characters, whose description is longer than 2000 characters, or whose resolution criteria is
+  longer than 1000 characters, measured after trimming leading and trailing whitespace, with an
+  error that identifies the field over its limit.
 
 ### Key Entities
 
 - **User**: A registered account — unique username, hashed password, current sisu balance, role
   (regular user or resolver), created predictions, and transaction history.
-- **Prediction**: A yes/no question a user created — question text, description, resolution
-  criteria, closing date, status (open, closed, resolved, or cancelled), the winning outcome once
+- **Prediction**: A yes/no question a user created — question text (≤200 characters), description
+  (≤2000), resolution criteria (≤1000), closing date, status (open, closed, resolved, or cancelled), the winning outcome once
   resolved, and the creator.
 - **Wager**: A single bet a user places on a prediction — the amount of sisu, the chosen outcome,
   the placing user, the prediction it belongs to, and its resulting payout once resolved.
@@ -356,7 +372,7 @@ transaction history after some wagers and balance changes already exist.
 - **SC-006**: 100% of a user's displayed balance changes are matched by a corresponding entry in
   their transaction history, with zero discrepancies.
 - **SC-007**: In usability testing, users who trigger a rejected action (over-balance wager, empty
-  prediction field, past closing date, duplicate username) can state what went wrong and what to do
+  or over-long prediction field, past closing date, duplicate username) can state what went wrong and what to do
   differently without outside help, 100% of the time.
 - **SC-008**: In usability testing, 100% of new users can correctly state, after browsing the
   product, that sisu cannot be exchanged for real money.

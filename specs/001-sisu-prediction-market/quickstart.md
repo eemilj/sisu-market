@@ -67,7 +67,9 @@ curl -i -b cookies.txt -X POST http://localhost:8080/api/predictions \
 ```
 
 Expected: `201` with `status: "OPEN"`. Submitting an empty `question` or a past `closingAt` returns
-`422` (FR-013, FR-014).
+`422` (FR-013, FR-014). A `question` over 200 characters, `description` over 2000, or
+`resolutionCriteria` over 1000 returns `422` with `QUESTION_TOO_LONG`, `DESCRIPTION_TOO_LONG`, or
+`RESOLUTION_CRITERIA_TOO_LONG` (FR-038).
 
 ## 6. User Story 3 — wager, and watch it update live
 

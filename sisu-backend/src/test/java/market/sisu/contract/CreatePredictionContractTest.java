@@ -105,6 +105,19 @@ class CreatePredictionContractTest {
     }
 
     @Test
+    void rejectsFieldsOverTheirMaximumLength() {
+        create(body("k".repeat(201), "", "Peruste", future()))
+                .statusCode(422)
+                .body("code", equalTo("QUESTION_TOO_LONG"));
+        create(body("Kysymys?", "d".repeat(2001), "Peruste", future()))
+                .statusCode(422)
+                .body("code", equalTo("DESCRIPTION_TOO_LONG"));
+        create(body("Kysymys?", "", "r".repeat(1001), future()))
+                .statusCode(422)
+                .body("code", equalTo("RESOLUTION_CRITERIA_TOO_LONG"));
+    }
+
+    @Test
     void rejectsAClosingDateInThePast() {
         String past = Instant.now().minus(1, ChronoUnit.HOURS).toString();
         create(body("Kysymys?", "kuvaus", "Peruste", past))

@@ -16,6 +16,15 @@ import org.bson.types.ObjectId;
 @ApplicationScoped
 public class PredictionService {
 
+    /** FR-038. A question should fit on a list card: one sentence, like a headline. */
+    public static final int QUESTION_MAX_LENGTH = 200;
+
+    /** Background for the question; a few paragraphs at most. */
+    public static final int DESCRIPTION_MAX_LENGTH = 2000;
+
+    /** How the outcome is decided and from which source; a paragraph or two. */
+    public static final int RESOLUTION_CRITERIA_MAX_LENGTH = 1000;
+
     private final PredictionRepository predictions;
     private final UserRepository users;
     private final Clock clock;
@@ -28,11 +37,14 @@ public class PredictionService {
 
     /**
      * Creates an {@code OPEN} prediction with empty pools. Question and resolution criteria are
-     * stored trimmed; a missing description is stored as empty.
+     * stored trimmed; a missing description is stored as empty. Length limits apply to the
+     * trimmed text.
      *
      * @throws ApiException {@code 401 UNAUTHENTICATED} if the creator's account no longer exists;
-     *     {@code 422} with {@code QUESTION_REQUIRED}, {@code RESOLUTION_CRITERIA_REQUIRED} or
-     *     {@code CLOSING_DATE_NOT_IN_FUTURE} for invalid input (FR-013, FR-014)
+     *     {@code 422} with {@code QUESTION_REQUIRED}, {@code QUESTION_TOO_LONG},
+     *     {@code DESCRIPTION_TOO_LONG}, {@code RESOLUTION_CRITERIA_REQUIRED},
+     *     {@code RESOLUTION_CRITERIA_TOO_LONG} or {@code CLOSING_DATE_NOT_IN_FUTURE} for invalid
+     *     input (FR-013, FR-014, FR-038)
      */
     public PredictionDetail create(ObjectId creatorId, CreatePredictionRequest request) {
         if (request == null) {
@@ -42,10 +54,15 @@ public class PredictionService {
         if (question.isEmpty()) {
             throw ApiException.unprocessable("QUESTION_REQUIRED", "Question must not be empty");
         }
+        requireMaxLength(question, QUESTION_MAX_LENGTH, "QUESTION_TOO_LONG", "Question");
+        String description = strip(request.description());
+        requireMaxLength(description, DESCRIPTION_MAX_LENGTH, "DESCRIPTION_TOO_LONG", "Description");
         String criteria = strip(request.resolutionCriteria());
         if (criteria.isEmpty()) {
             throw ApiException.unprocessable("RESOLUTION_CRITERIA_REQUIRED", "Resolution criteria must not be empty");
         }
+        requireMaxLength(
+                criteria, RESOLUTION_CRITERIA_MAX_LENGTH, "RESOLUTION_CRITERIA_TOO_LONG", "Resolution criteria");
         Instant now = clock.instant();
         if (request.closingAt() == null || !request.closingAt().isAfter(now)) {
             throw ApiException.unprocessable("CLOSING_DATE_NOT_IN_FUTURE", "Closing date must be in the future");
@@ -59,7 +76,7 @@ public class PredictionService {
         prediction.id = new ObjectId();
         prediction.creatorId = creator.id;
         prediction.question = question;
-        prediction.description = strip(request.description());
+        prediction.description = description;
         prediction.resolutionCriteria = criteria;
         // MongoDB keeps milliseconds; truncate now so this response matches every later read.
         prediction.closingAt = request.closingAt().truncatedTo(ChronoUnit.MILLIS);
@@ -67,6 +84,13 @@ public class PredictionService {
         prediction.createdAt = now;
         predictions.persist(prediction);
         return PredictionDetail.of(prediction, now, creator.username);
+    }
+
+    /** Lengths count UTF-16 code units, matching the frontend's {@code maxLength}. */
+    private static void requireMaxLength(String value, int max, String code, String field) {
+        if (value.length() > max) {
+            throw ApiException.unprocessable(code, field + " must be at most " + max + " characters");
+        }
     }
 
     private static String strip(String value) {

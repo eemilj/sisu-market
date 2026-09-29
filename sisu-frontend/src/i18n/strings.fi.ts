@@ -75,6 +75,8 @@ export const fi = {
     closingAtHint: 'Panoksia voi asettaa tähän hetkeen asti.',
     submit: 'Luo ennuste',
     submitting: 'Luodaan…',
+    /** "12 / 200 merkkiä" */
+    characterCount: (length: number, max: number) => `${length} / ${max} merkkiä`,
   },
   odds: {
     title: 'Kertoimet',
@@ -124,6 +126,9 @@ export const fi = {
     NOT_FOUND: 'Kohdetta ei löytynyt.',
     PREDICTION_NOT_FOUND: 'Ennustetta ei löytynyt.',
     QUESTION_REQUIRED: 'Kirjoita kysymys.',
+    QUESTION_TOO_LONG: 'Kysymys saa olla enintään 200 merkkiä.',
+    DESCRIPTION_TOO_LONG: 'Kuvaus saa olla enintään 2000 merkkiä.',
+    RESOLUTION_CRITERIA_TOO_LONG: 'Ratkaisuperuste saa olla enintään 1000 merkkiä.',
     RESOLUTION_CRITERIA_REQUIRED: 'Kerro, miten lopputulos ratkaistaan.',
     CLOSING_DATE_NOT_IN_FUTURE: 'Sulkeutumisajan on oltava tulevaisuudessa.',
     INSUFFICIENT_BALANCE: 'Saldosi ei riitä tähän panokseen.',

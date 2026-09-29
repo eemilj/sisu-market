@@ -46,7 +46,7 @@ localization file, WCAG 2.1 AA; passwords hashed (bcrypt/Argon2), login rate-lim
 15-minute cooldown per username+IP (FR-037); project MUST start locally with a single
 `docker compose up`
 
-**Scale/Scope**: MVP scope — 6 user stories, 37 functional requirements, ~100 concurrent users;
+**Scale/Scope**: MVP scope — 6 user stories, 38 functional requirements, ~100 concurrent users;
 excludes multi-outcome predictions, buying sisu with real money, and social features (comments,
 following)
 
