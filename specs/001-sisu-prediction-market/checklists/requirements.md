@@ -54,6 +54,10 @@
   - FR-025 now requires checking the closing time directly at wager-placement time (zero gap), plus
     a 1-minute/restart-surviving bound on flipping the visible status — previously just said
     "automatically stop accepting wagers" with no enforcement mechanism specified.
+- 2026-09-29: added FR-038 (maximum lengths for a prediction's question, description, and
+  resolution criteria: 200 / 2000 / 1000 characters, measured after trimming), with a matching
+  User Story 4 acceptance scenario and SC-007 wording. No checkbox flips; the new requirement is
+  testable and technology-agnostic.
 - All checklist items pass. Spec is ready for `/speckit-plan` (plan.md/data-model.md/tasks.md exist
   already for this feature; FR-021/FR-025's changes should be reflected there too — see the
   `/speckit-analyze` report's I1/U1 findings for the exact task-level follow-up).

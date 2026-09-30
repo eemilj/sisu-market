@@ -50,7 +50,8 @@ export interface PredictionSummary {
 export interface PredictionDetail extends PredictionSummary {
   description: string;
   resolutionCriteria: string;
-  creatorUsername: string;
+  /** `null` once the creator has deleted their account. */
+  creatorUsername: string | null;
   winningOutcome: Outcome | null;
 }
 

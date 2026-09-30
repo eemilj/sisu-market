@@ -29,9 +29,9 @@ the same transaction as any balance-changing write (FR-009).
 |---|---|---|
 | `_id` | ObjectId | |
 | `creatorId` | ObjectId (→ User) | FR-015 |
-| `question` | string | Non-empty (FR-013) |
-| `description` | string | |
-| `resolutionCriteria` | string | Non-empty (FR-013) |
+| `question` | string | Non-empty (FR-013); at most 200 characters (FR-038) |
+| `description` | string | May be empty; at most 2000 characters (FR-038) |
+| `resolutionCriteria` | string | Non-empty (FR-013); at most 1000 characters (FR-038) |
 | `closingAt` | timestamp | Must be in the future at creation time (FR-014) |
 | `status` | enum: `OPEN`, `CLOSED`, `RESOLVED`, `CANCELLED` | See state transitions below (Clarifications session 2026-09-23) |
 | `yesPoolSisu` | integer | Running total wagered on "yes"; updated atomically with each wager (FR-023, FR-034) |
@@ -45,8 +45,9 @@ the same transaction as any balance-changing write (FR-009).
 complement; computed on read from the two stored totals, never recomputed by summing `wagers` (keeps
 list/detail reads a single-document fetch).
 
-**Validation**: `question` and `resolutionCriteria` non-empty; `closingAt` in the future at creation
-(FR-014); `yesPoolSisu`, `noPoolSisu` >= 0.
+**Validation**: `question` and `resolutionCriteria` non-empty; `question` ≤ 200, `description`
+≤ 2000 and `resolutionCriteria` ≤ 1000 characters, all stored trimmed and measured after trimming
+(FR-038); `closingAt` in the future at creation (FR-014); `yesPoolSisu`, `noPoolSisu` >= 0.
 
 **State transitions**:
 

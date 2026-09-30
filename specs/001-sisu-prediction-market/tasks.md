@@ -155,23 +155,23 @@ visitor, independent of wagering or account creation.
 
 ### Tests for User Story 2
 
-- [ ] T035 [P] [US2] Contract test for `GET /api/predictions` including the `status` filter in
+- [X] T035 [P] [US2] Contract test for `GET /api/predictions` including the `status` filter in
   `sisu-backend/src/test/java/market/sisu/contract/PredictionListContractTest.java`
-- [ ] T036 [P] [US2] Contract test for `GET /api/predictions/{id}` in
+- [X] T036 [P] [US2] Contract test for `GET /api/predictions/{id}` in
   `sisu-backend/src/test/java/market/sisu/contract/PredictionDetailContractTest.java`
 
 ### Implementation for User Story 2
 
-- [ ] T037 [US2] Implement `PredictionQueryService` (list with status filter, detail, odds derived
+- [X] T037 [US2] Implement `PredictionQueryService` (list with status filter, detail, odds derived
   from stored pool totals) in
   `sisu-backend/src/main/java/market/sisu/prediction/PredictionQueryService.java` (depends on T011)
-- [ ] T038 [US2] Implement the `PredictionResource` GET endpoints in
+- [X] T038 [US2] Implement the `PredictionResource` GET endpoints in
   `sisu-backend/src/main/java/market/sisu/prediction/PredictionResource.java` (depends on T037)
-- [ ] T039 [P] [US2] Build the `PredictionList` page with a status filter in
+- [X] T039 [P] [US2] Build the `PredictionList` page with a status filter in
   `sisu-frontend/src/pages/PredictionList.tsx` (depends on T019)
-- [ ] T040 [P] [US2] Build the `PredictionDetail` page in
+- [X] T040 [P] [US2] Build the `PredictionDetail` page in
   `sisu-frontend/src/pages/PredictionDetail.tsx` (depends on T019)
-- [ ] T041 [P] [US2] Build the `OddsBar` component in `sisu-frontend/src/components/OddsBar.tsx`
+- [X] T041 [P] [US2] Build the `OddsBar` component in `sisu-frontend/src/components/OddsBar.tsx`
 
 **Checkpoint**: User Stories 1 AND 2 both work independently.
 
@@ -232,18 +232,30 @@ predictions list, independent of whether wagering exists yet.
 
 ### Tests for User Story 4
 
-- [ ] T051 [P] [US4] Contract test for `POST /api/predictions` (success, empty fields, past closing
+- [X] T051 [P] [US4] Contract test for `POST /api/predictions` (success, empty fields, past closing
   date) in `sisu-backend/src/test/java/market/sisu/contract/CreatePredictionContractTest.java`
 
 ### Implementation for User Story 4
 
-- [ ] T052 [US4] Implement `PredictionService.create` (validation, creator attribution) in
+- [X] T052 [US4] Implement `PredictionService.create` (validation, creator attribution) in
   `sisu-backend/src/main/java/market/sisu/prediction/PredictionService.java` (depends on T011)
-- [ ] T053 [US4] Implement the `PredictionResource` POST endpoint in
+- [X] T053 [US4] Implement the `PredictionResource` POST endpoint in
   `sisu-backend/src/main/java/market/sisu/prediction/PredictionResource.java` (depends on T038,
   T052)
-- [ ] T054 [P] [US4] Build the `CreatePrediction` page/form in
+- [X] T054 [P] [US4] Build the `CreatePrediction` page/form in
   `sisu-frontend/src/pages/CreatePrediction.tsx` (depends on T019)
+
+### Text length limits for User Story 4 (FR-038, added 2026-09-29)
+
+- [X] T079 [P] [US4] Tests for the FR-038 length limits: boundary cases (at the limit, one over,
+  measured after trimming) in `sisu-backend/src/test/java/market/sisu/unit/PredictionServiceTest.java`,
+  the `QUESTION_TOO_LONG` / `DESCRIPTION_TOO_LONG` / `RESOLUTION_CRITERIA_TOO_LONG` codes in
+  `sisu-backend/src/test/java/market/sisu/contract/CreatePredictionContractTest.java`, and the
+  character counters in `sisu-frontend/tests/createPrediction.test.tsx`
+- [X] T080 [US4] Enforce the FR-038 length limits (question 200, description 2000, resolution
+  criteria 1000) in `PredictionService.create`, declare them as `maxLength` on
+  `CreatePredictionRequest` and in `contracts/openapi.yaml`, and add per-field character counters
+  and pre-submit checks to `sisu-frontend/src/pages/CreatePrediction.tsx` (depends on T052, T054)
 
 **Checkpoint**: User Stories 1–4 all work independently.
 

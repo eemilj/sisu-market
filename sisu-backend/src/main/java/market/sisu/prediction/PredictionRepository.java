@@ -4,6 +4,7 @@ import com.mongodb.client.ClientSession;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.Indexes;
+import com.mongodb.client.model.Sorts;
 import com.mongodb.client.model.Updates;
 import io.quarkus.mongodb.panache.PanacheMongoRepository;
 import io.quarkus.runtime.StartupEvent;
@@ -15,6 +16,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import market.sisu.common.Sisu;
+import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 
@@ -26,6 +28,31 @@ public class PredictionRepository implements PanacheMongoRepository<Prediction> 
         // Lets the closing job find due OPEN predictions without a collection scan.
         mongoCollection()
                 .createIndex(Indexes.ascending("status", "closingAt"), new IndexOptions().name("status_closingAt"));
+    }
+
+    /**
+     * Predictions for the public list (FR-016, FR-018), filtered by their <em>effective</em> status:
+     * an {@code OPEN} prediction whose {@code closingAt} has passed counts as {@code CLOSED} even
+     * before the closing job updates it (FR-025). Open predictions come soonest-closing first;
+     * every other listing comes most-recently-closing first.
+     *
+     * @param status the status to filter by, or {@code null} for every prediction
+     */
+    public List<Prediction> findForListing(PredictionStatus status, Instant now) {
+        Bson filter;
+        if (status == null) {
+            filter = new Document();
+        } else if (status == PredictionStatus.OPEN) {
+            filter = Filters.and(Filters.eq("status", PredictionStatus.OPEN.name()), Filters.gt("closingAt", now));
+        } else if (status == PredictionStatus.CLOSED) {
+            filter = Filters.or(
+                    Filters.eq("status", PredictionStatus.CLOSED.name()),
+                    Filters.and(Filters.eq("status", PredictionStatus.OPEN.name()), Filters.lte("closingAt", now)));
+        } else {
+            filter = Filters.eq("status", status.name());
+        }
+        Bson order = status == PredictionStatus.OPEN ? Sorts.ascending("closingAt") : Sorts.descending("closingAt");
+        return mongoCollection().find(filter).sort(order).into(new ArrayList<>());
     }
 
     public void insert(ClientSession session, Prediction prediction) {

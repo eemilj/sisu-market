@@ -38,4 +38,15 @@ public class Prediction {
     public ObjectId resolvedBy;
 
     public Instant createdAt;
+
+    /**
+     * The status users should see at {@code now}: an {@code OPEN} prediction stops being open the
+     * instant its {@code closingAt} passes (FR-025), even if the closing job has not caught up yet.
+     */
+    public PredictionStatus statusAt(Instant now) {
+        if (status == PredictionStatus.OPEN && !closingAt.isAfter(now)) {
+            return PredictionStatus.CLOSED;
+        }
+        return status;
+    }
 }

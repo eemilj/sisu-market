@@ -39,6 +39,60 @@ export const fi = {
     intro:
       'Sisu Market on ennustemarkkina, jossa panostat leikkirahaa kyllä/ei-kysymyksiin ja kerrytät sisua osumalla oikeaan.',
   },
+  predictions: {
+    listTitle: 'Ennusteet',
+    listIntro: 'Selaa kyllä/ei-kysymyksiä ja niiden tämänhetkisiä kertoimia.',
+    browse: 'Selaa ennusteita',
+    filterLabel: 'Näytä ennusteet tilan mukaan',
+    filterAll: 'Kaikki',
+    empty: 'Tällä suodattimella ei löytynyt ennusteita.',
+    loadFailed: 'Ennusteiden lataaminen epäonnistui.',
+    retry: 'Yritä uudelleen',
+    closingAt: 'Sulkeutumisaika',
+    totalWagered: 'Panostettu yhteensä',
+    status: 'Tila',
+    description: 'Kuvaus',
+    resolutionCriteria: 'Ratkaisuperuste',
+    creator: 'Luoja',
+    deletedCreator: 'Poistettu käyttäjä',
+    winningOutcome: 'Toteutunut lopputulos',
+    backToList: 'Takaisin ennusteisiin',
+    notFoundTitle: 'Ennustetta ei löytynyt',
+    notFoundBody: 'Ennustetta ei ole olemassa, tai osoite on virheellinen.',
+  },
+  createPrediction: {
+    title: 'Luo ennuste',
+    intro:
+      'Kirjoita kyllä/ei-kysymys, jonka lopputulos selviää myöhemmin. Muut voivat panostaa sisua kumpaan tahansa vaihtoehtoon sulkeutumisaikaan asti.',
+    loginRequired: 'Kirjaudu sisään luodaksesi ennusteen.',
+    question: 'Kysymys',
+    questionHint: 'Kyllä/ei-kysymys, esim. "Sataako Helsingissä juhannuspäivänä?"',
+    description: 'Kuvaus',
+    descriptionHint: 'Vapaaehtoinen taustatieto kysymyksestä.',
+    resolutionCriteria: 'Ratkaisuperuste',
+    resolutionCriteriaHint: 'Miten ja mistä lähteestä lopputulos ratkaistaan.',
+    closingAt: 'Sulkeutumisaika',
+    closingAtHint: 'Panoksia voi asettaa tähän hetkeen asti.',
+    submit: 'Luo ennuste',
+    submitting: 'Luodaan…',
+    /** "12 / 200 merkkiä" */
+    characterCount: (length: number, max: number) => `${length} / ${max} merkkiä`,
+  },
+  odds: {
+    title: 'Kertoimet',
+    /** "63,2 %" */
+    percent: (value: number) =>
+      `${new Intl.NumberFormat('fi-FI', { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value)} %`,
+    /** Screen-reader summary of the whole bar. */
+    summary: (yes: string, no: string) => `Kertoimet: kyllä ${yes}, ei ${no}`,
+  },
+  date: {
+    /** "30.9.2026 klo 14.00" */
+    dateTime: (iso: string) =>
+      new Intl.DateTimeFormat('fi-FI', { dateStyle: 'short', timeStyle: 'short' }).format(
+        new Date(iso),
+      ),
+  },
   notFound: {
     title: 'Sivua ei löytynyt',
     body: 'Etsimääsi sivua ei ole olemassa.',
@@ -70,6 +124,13 @@ export const fi = {
     UNAUTHENTICATED: 'Kirjaudu sisään jatkaaksesi.',
     FORBIDDEN: 'Sinulla ei ole oikeutta tähän toimintoon.',
     NOT_FOUND: 'Kohdetta ei löytynyt.',
+    PREDICTION_NOT_FOUND: 'Ennustetta ei löytynyt.',
+    QUESTION_REQUIRED: 'Kirjoita kysymys.',
+    QUESTION_TOO_LONG: 'Kysymys saa olla enintään 200 merkkiä.',
+    DESCRIPTION_TOO_LONG: 'Kuvaus saa olla enintään 2000 merkkiä.',
+    RESOLUTION_CRITERIA_TOO_LONG: 'Ratkaisuperuste saa olla enintään 1000 merkkiä.',
+    RESOLUTION_CRITERIA_REQUIRED: 'Kerro, miten lopputulos ratkaistaan.',
+    CLOSING_DATE_NOT_IN_FUTURE: 'Sulkeutumisajan on oltava tulevaisuudessa.',
     INSUFFICIENT_BALANCE: 'Saldosi ei riitä tähän panokseen.',
     USERNAME_TAKEN: 'Käyttäjätunnus on jo käytössä.',
     INVALID_CREDENTIALS: 'Virheellinen käyttäjätunnus tai salasana.',
