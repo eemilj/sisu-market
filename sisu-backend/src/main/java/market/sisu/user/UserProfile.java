@@ -16,16 +16,8 @@ public record UserProfile(
         List<PredictionSummary> createdPredictions,
         List<Wager> wagers) {
 
-    public static UserProfile of(
-            User user,
-            List<PredictionSummary> createdPredictions,
-            List<Wager> wagers) {
+    public static UserProfile of(User user, List<PredictionSummary> createdPredictions, List<Wager> wagers) {
         return new UserProfile(
-                user.id.toHexString(),
-                user.username,
-                user.balanceSisu,
-                user.role,
-                createdPredictions,
-                wagers);
+                user.id.toHexString(), user.username, user.balanceSisu, user.role, createdPredictions, wagers);
     }
 }

@@ -54,11 +54,7 @@ class UserProfileContractTest {
 
     @Test
     void getUsersMeRequiresAuthentication401() {
-        given().when()
-                .get("/api/users/me")
-                .then()
-                .statusCode(401)
-                .body("code", equalTo("UNAUTHENTICATED"));
+        given().when().get("/api/users/me").then().statusCode(401).body("code", equalTo("UNAUTHENTICATED"));
     }
 
     @Test

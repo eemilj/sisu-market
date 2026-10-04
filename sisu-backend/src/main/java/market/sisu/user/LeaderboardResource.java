@@ -42,9 +42,7 @@ public class LeaderboardResource {
         List<User> liveUsers = users.mongoCollection()
                 .find(Filters.eq("deletedAt", null))
                 .sort(Sorts.orderBy(
-                        Sorts.descending("balanceSisu"),
-                        Sorts.ascending("createdAt"),
-                        Sorts.ascending("_id")))
+                        Sorts.descending("balanceSisu"), Sorts.ascending("createdAt"), Sorts.ascending("_id")))
                 .into(new ArrayList<>());
 
         List<LeaderboardEntry> entries = new ArrayList<>();
