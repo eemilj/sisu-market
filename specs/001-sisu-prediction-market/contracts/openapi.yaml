@@ -278,16 +278,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '404':
+          description: No such prediction (code `PREDICTION_NOT_FOUND`)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '409':
-          description: Prediction is not open (closed, resolved, or cancelled) (FR-021)
+          description: >
+            Prediction is not open — closed, resolved, or cancelled (FR-021), or its closing time
+            has already passed even if its status has not been updated yet (FR-025). Code
+            `PREDICTION_NOT_OPEN`.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: >
-            Wager amount is not a positive whole number, or exceeds the user's balance
-            (FR-020).
+            Wager amount is not a positive whole number (code `INVALID_WAGER_AMOUNT`), the
+            outcome is missing (`VALIDATION_FAILED`), or the amount exceeds the user's balance
+            (`INSUFFICIENT_BALANCE`, FR-020).
           content:
             application/json:
               schema:
@@ -451,6 +461,10 @@ components:
       properties:
         id: { type: string }
         predictionId: { type: string }
+        predictionQuestion:
+          type: string
+          nullable: true
+          description: The wagered-on question, so a list of wagers reads on its own.
         outcome: { type: string, enum: [YES, NO] }
         amountSisu: { type: integer }
         status: { type: string, enum: [OPEN, WON, LOST, REFUNDED] }

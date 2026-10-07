@@ -9,6 +9,7 @@ import Leaderboard from './pages/Leaderboard';
 import Login from './pages/Login';
 import PredictionDetail from './pages/PredictionDetail';
 import PredictionList from './pages/PredictionList';
+import Profile from './pages/Profile';
 import Register from './pages/Register';
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -44,6 +45,9 @@ function AuthNav() {
     <div className="flex flex-wrap items-center gap-2">
       <NavLink to="/create-prediction" className={navLinkClass}>
         {fi.nav.createPrediction}
+      </NavLink>
+      <NavLink to="/profile" className={navLinkClass}>
+        {fi.nav.profile}
       </NavLink>
       <span
         className="hidden text-sm text-slate-600 sm:inline"
@@ -162,6 +166,7 @@ export default function App() {
         <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/create-prediction" element={<CreatePrediction />} />
         <Route path="/predictions/:id" element={<PredictionDetail />} />
+        <Route path="/profile" element={<Profile />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
         <Route path="*" element={<NotFound />} />
