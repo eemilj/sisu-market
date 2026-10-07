@@ -25,7 +25,7 @@ a { color: var(--blue); }
 a:hover { color: var(--blue-dark); }
 h1 { font-size: 1.75rem; margin: 0 0 .5rem; line-height: 1.25; }
 h2 { font-size: 1.15rem; margin: 1.5rem 0 .5rem; }
-.card h2:first-child, .card > section:first-child h2 { margin-top: 0; }
+.card > h2:first-child { margin-top: 0; }
 
 :focus-visible { outline: 3px solid #ffbf47; outline-offset: 2px; }
 

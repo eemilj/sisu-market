@@ -35,6 +35,15 @@ export function setUnauthorizedHandler(fn: () => void) {
   onUnauthorized = fn;
 }
 
+function codeForStatus(status: number): ErrorCode {
+  if (status === 401) return 'UNAUTHORIZED';
+  if (status === 403) return 'NOT_ALLOWED';
+  if (status === 404) return 'NOT_FOUND';
+  if (status === 429) return 'TOO_MANY_ATTEMPTS';
+  if (status === 502 || status === 503 || status === 504) return 'NETWORK';
+  return 'UNKNOWN';
+}
+
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const headers: Record<string, string> = { Accept: 'application/json' };
   const token = tokenStore.get();
@@ -50,12 +59,12 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   if (res.ok) {
     return (res.status === 204 ? undefined : await res.json()) as T;
   }
-  let code: ErrorCode = 'UNKNOWN';
+  let code: ErrorCode = codeForStatus(res.status);
   try {
     const data = (await res.json()) as { code?: string };
     if (data.code && data.code in fi.errors) code = data.code as ErrorCode;
   } catch {
-    // non-JSON error body; fall back to UNKNOWN
+    // No JSON error body (e.g. rejected by the proxy or a filter); keep the status-based code.
   }
   if (res.status === 401 && code === 'UNAUTHORIZED' && token) onUnauthorized();
   throw new ApiError(code, res.status);
