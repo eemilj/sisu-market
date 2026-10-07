@@ -11,14 +11,19 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import market.sisu.common.ApiError;
 import market.sisu.common.ApiException;
+import market.sisu.prediction.Prediction;
 import market.sisu.prediction.PredictionRepository;
 import market.sisu.prediction.PredictionSummary;
 import market.sisu.transaction.Transaction;
 import market.sisu.transaction.TransactionRepository;
 import market.sisu.wager.Wager;
 import market.sisu.wager.WagerRepository;
+import market.sisu.wager.WagerView;
 import org.bson.types.ObjectId;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.eclipse.microprofile.openapi.annotations.Operation;
@@ -83,7 +88,23 @@ public class UserResource {
                 .find(Filters.eq("userId", user.id))
                 .sort(Sorts.descending("placedAt"))
                 .into(new ArrayList<>());
-        return UserProfile.of(user, created, userWagers);
+        List<WagerView> wagerViews;
+        if (userWagers.isEmpty()) {
+            wagerViews = List.of();
+        } else {
+            Map<ObjectId, Prediction> byId =
+                    predictionRepository
+                            .findByIds(userWagers.stream()
+                                    .map(w -> w.predictionId)
+                                    .distinct()
+                                    .toList())
+                            .stream()
+                            .collect(Collectors.toMap(p -> p.id, Function.identity()));
+            wagerViews = userWagers.stream()
+                    .map(wager -> WagerView.of(wager, byId.get(wager.predictionId)))
+                    .toList();
+        }
+        return UserProfile.of(user, created, wagerViews);
     }
 
     @GET

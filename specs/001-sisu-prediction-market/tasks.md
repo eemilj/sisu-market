@@ -329,8 +329,8 @@ wagers and balance changes already exist.
   (depends on T010, T013)
 - [X] T067 [P] [US6] Build the `Leaderboard` page in `sisu-frontend/src/pages/Leaderboard.tsx`
   (depends on T019)
-- [ ] T068 [US6] Extend the Profile page with balance, created-predictions, and transaction-history
-  sections in `sisu-frontend/src/pages/Profile.tsx` (depends on T050, T066) - BLOCKED: T050 is incomplete and Profile.tsx does not exist.
+- [X] T068 [US6] Extend the Profile page with balance, created-predictions, and transaction-history
+  sections in `sisu-frontend/src/pages/Profile.tsx` (depends on T050, T066)
 
 **Checkpoint**: All six user stories are independently functional.
 
