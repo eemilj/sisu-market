@@ -312,25 +312,25 @@ wagers and balance changes already exist.
 
 ### Tests for User Story 6
 
-- [ ] T062 [P] [US6] Contract test for `GET /api/leaderboard` in
+- [X] T062 [P] [US6] Contract test for `GET /api/leaderboard` in
   `sisu-backend/src/test/java/market/sisu/contract/LeaderboardContractTest.java`
-- [ ] T063 [P] [US6] Contract test for `GET /api/users/me` and `GET /api/users/me/transactions`,
+- [X] T063 [P] [US6] Contract test for `GET /api/users/me` and `GET /api/users/me/transactions`,
   including the 401-when-logged-out case and confirming no endpoint exposes another user's profile,
   in `sisu-backend/src/test/java/market/sisu/contract/UserProfileContractTest.java`
-- [ ] T064 [P] [US6] Unit test asserting a user's transaction-log sum always equals `balanceSisu`
+- [X] T064 [P] [US6] Unit test asserting a user's transaction-log sum always equals `balanceSisu`
   (SC-006) in `sisu-backend/src/test/java/market/sisu/unit/TransactionLedgerTest.java`
 
 ### Implementation for User Story 6
 
-- [ ] T065 [US6] Implement the `LeaderboardResource` (ranked by balance) in
+- [X] T065 [US6] Implement the `LeaderboardResource` (ranked by balance) in
   `sisu-backend/src/main/java/market/sisu/user/LeaderboardResource.java` (depends on T010)
-- [ ] T066 [US6] Implement `UserResource` `GET /api/users/me` and
+- [X] T066 [US6] Implement `UserResource` `GET /api/users/me` and
   `GET /api/users/me/transactions` in `sisu-backend/src/main/java/market/sisu/user/UserResource.java`
   (depends on T010, T013)
-- [ ] T067 [P] [US6] Build the `Leaderboard` page in `sisu-frontend/src/pages/Leaderboard.tsx`
+- [X] T067 [P] [US6] Build the `Leaderboard` page in `sisu-frontend/src/pages/Leaderboard.tsx`
   (depends on T019)
 - [ ] T068 [US6] Extend the Profile page with balance, created-predictions, and transaction-history
-  sections in `sisu-frontend/src/pages/Profile.tsx` (depends on T050, T066)
+  sections in `sisu-frontend/src/pages/Profile.tsx` (depends on T050, T066) - BLOCKED: T050 is incomplete and Profile.tsx does not exist.
 
 **Checkpoint**: All six user stories are independently functional.
 

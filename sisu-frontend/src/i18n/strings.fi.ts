@@ -39,6 +39,15 @@ export const fi = {
     intro:
       'Sisu Market on ennustemarkkina, jossa panostat leikkirahaa kyllä/ei-kysymyksiin ja kerrytät sisua osumalla oikeaan.',
   },
+  leaderboard: {
+    title: 'Tulostaulukko',
+    intro: 'Käyttäjät parhaan sisu-saldon mukaan.',
+    rank: 'Sija',
+    user: 'Käyttäjä',
+    balance: 'Saldo',
+    empty: 'Ei käyttäjiä vielä.',
+    loadFailed: 'Tulostaulukon lataaminen epäonnistui.',
+  },
   predictions: {
     listTitle: 'Ennusteet',
     listIntro: 'Selaa kyllä/ei-kysymyksiä ja niiden tämänhetkisiä kertoimia.',
