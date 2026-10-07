@@ -49,9 +49,15 @@ export default function Leaderboard() {
             <table className="w-full text-left text-sm">
               <thead className="border-b border-slate-200 bg-slate-100 font-semibold text-slate-700">
                 <tr>
-                  <th scope="col" className="px-4 py-3">{fi.leaderboard.rank}</th>
-                  <th scope="col" className="px-4 py-3">{fi.leaderboard.user}</th>
-                  <th scope="col" className="px-4 py-3 text-right">{fi.leaderboard.balance}</th>
+                  <th scope="col" className="px-4 py-3">
+                    {fi.leaderboard.rank}
+                  </th>
+                  <th scope="col" className="px-4 py-3">
+                    {fi.leaderboard.user}
+                  </th>
+                  <th scope="col" className="px-4 py-3 text-right">
+                    {fi.leaderboard.balance}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
@@ -59,7 +65,9 @@ export default function Leaderboard() {
                   <tr key={entry.username} className="hover:bg-slate-50">
                     <td className="px-4 py-3 font-medium text-slate-600">{entry.rank}</td>
                     <td className="px-4 py-3 font-semibold text-sky-900">{entry.username}</td>
-                    <td className="px-4 py-3 text-right font-medium">{fi.sisu.amount(entry.balanceSisu)}</td>
+                    <td className="px-4 py-3 text-right font-medium">
+                      {fi.sisu.amount(entry.balanceSisu)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
