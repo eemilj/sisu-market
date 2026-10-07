@@ -1,0 +1,61 @@
+# Vibe-coded Sisu-markkinat: `docker compose up --build` from this folder.
+# App: http://localhost:3000   API + Swagger UI: http://localhost:8081/q/swagger-ui
+name: sisu-vibe
+
+services:
+  mongo:
+    image: mongo:7.0
+    # Transactions need a replica set; the healthcheck initiates a one-node set on first boot.
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval",
+             "try { rs.status().ok } catch (e) { rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'mongo:27017'}]}).ok }"]
+      interval: 5s
+      timeout: 10s
+      start_period: 10s
+      retries: 30
+
+  # Creates an RSA key pair for signing JWTs on first start; keys never live in the repo.
+  keygen:
+    image: alpine:3.22
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        if [ ! -f /keys/jwt.pem ]; then
+          apk add --no-cache openssl >/dev/null
+          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out /keys/jwt.pem
+          openssl pkey -in /keys/jwt.pem -pubout -out /keys/jwt.pub.pem
+        fi
+        chmod 444 /keys/*.pem
+    volumes:
+      - jwt-keys:/keys
+
+  backend:
+    build: ./backend
+    depends_on:
+      mongo:
+        condition: service_healthy
+      keygen:
+        condition: service_completed_successfully
+    environment:
+      MONGODB_URI: mongodb://mongo:27017/?replicaSet=rs0
+      JWT_PRIVATE_KEY: /keys/jwt.pem
+      JWT_PUBLIC_KEY: /keys/jwt.pub.pem
+      SISU_ADMINS: ${SISU_ADMINS:-admin}
+    volumes:
+      - jwt-keys:/keys:ro
+    ports:
+      - "8081:8080"
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+
+volumes:
+  mongo-data:
+  jwt-keys:
