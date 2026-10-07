@@ -74,9 +74,12 @@ export interface PlaceWagerRequest {
 export interface Wager {
   id: string;
   predictionId: string;
+  /** The wagered-on question; `null` if the prediction can no longer be found. */
+  predictionQuestion: string | null;
   outcome: Outcome;
   amountSisu: number;
   status: WagerStatus;
+  /** While `OPEN`, the payout if this side won at the current pools; once settled, the final payout. */
   potentialPayoutSisu: number;
   placedAt: string;
 }

@@ -1,7 +1,10 @@
 import { Link, useParams } from 'react-router';
 import { ApiError } from '../api/client';
+import type { PredictionDetail as Detail } from '../api/types';
 import OddsBar from '../components/OddsBar';
 import StatusBadge from '../components/StatusBadge';
+import WagerForm from '../components/WagerForm';
+import { useAuth } from '../hooks/useAuth';
 import { usePrediction } from '../hooks/usePredictions';
 import { errorMessage, fi } from '../i18n/strings.fi';
 
@@ -10,7 +13,10 @@ const backLinkClass =
 
 /**
  * One prediction's public detail view (User Story 2, scenario 2; FR-015, FR-017): full description,
- * resolution criteria, creator and current odds. User Story 3 adds the wager form here.
+ * resolution criteria, creator and current odds, plus the wager form for logged-in users (User
+ * Story 3). Odds and balance stay live without polling: `useLiveUpdates` (mounted once in the app
+ * shell) writes `odds-updated` and `balance-updated` events into the same query cache this page
+ * and the form read from.
  */
 export default function PredictionDetail() {
   const { id = '' } = useParams();
@@ -81,6 +87,8 @@ export default function PredictionDetail() {
         )}
       </section>
 
+      <WagerSection prediction={prediction} />
+
       <dl className="grid gap-4 sm:grid-cols-3">
         <div>
           <dt className="text-sm text-slate-600">{fi.predictions.totalWagered}</dt>
@@ -114,5 +122,49 @@ export default function PredictionDetail() {
         <p className="mt-1 whitespace-pre-line text-slate-800">{prediction.resolutionCriteria}</p>
       </section>
     </article>
+  );
+}
+
+/** Whether wagers are still accepted, by status and by the clock (FR-021, FR-025). */
+function acceptsWagers(prediction: Detail): boolean {
+  return prediction.status === 'OPEN' && new Date(prediction.closingAt).getTime() > Date.now();
+}
+
+function WagerSection({ prediction }: { prediction: Detail }) {
+  const { user, isLoading } = useAuth();
+
+  let body;
+  if (!acceptsWagers(prediction)) {
+    body = <p>{fi.wager.notOpen}</p>;
+  } else if (isLoading) {
+    body = <p aria-live="polite">{fi.app.loading}</p>;
+  } else if (!user) {
+    body = (
+      <p className="flex flex-wrap items-center gap-2">
+        <span>{fi.wager.loginRequired}</span>
+        <Link to="/login" className={backLinkClass}>
+          {fi.nav.login}
+        </Link>
+      </p>
+    );
+  } else {
+    body = (
+      <>
+        <p className="mb-4 text-slate-700">{fi.wager.intro}</p>
+        <WagerForm predictionId={prediction.id} balanceSisu={user.balanceSisu} />
+      </>
+    );
+  }
+
+  return (
+    <section
+      aria-labelledby="wager-title"
+      className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
+    >
+      <h2 id="wager-title" className="mb-3 text-lg font-semibold">
+        {fi.wager.title}
+      </h2>
+      {body}
+    </section>
   );
 }

@@ -25,6 +25,10 @@ class OpenApiDocumentTest {
                 .body("components.securitySchemes.sessionCookie.in", equalTo("cookie"))
                 .body("components.securitySchemes.sessionCookie.name", equalTo("sisu_session"))
                 .body("components.schemas.Error.required", hasItems("code", "message"))
-                .body("paths.'/api/realtime/updates'.get", notNullValue());
+                .body("paths.'/api/realtime/updates'.get", notNullValue())
+                .body("paths.'/api/predictions/{id}/wagers'.post", notNullValue())
+                .body("paths.'/api/users/me/wagers'.get", notNullValue())
+                .body("components.schemas.PlaceWagerRequest.required", hasItems("outcome", "amountSisu"))
+                .body("components.schemas.Wager.properties.potentialPayoutSisu", notNullValue());
     }
 }

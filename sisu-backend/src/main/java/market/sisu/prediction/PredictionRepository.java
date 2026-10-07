@@ -12,6 +12,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -53,6 +54,11 @@ public class PredictionRepository implements PanacheMongoRepository<Prediction> 
         }
         Bson order = status == PredictionStatus.OPEN ? Sorts.ascending("closingAt") : Sorts.descending("closingAt");
         return mongoCollection().find(filter).sort(order).into(new ArrayList<>());
+    }
+
+    /** The predictions with these ids, in no particular order; unknown ids are skipped. */
+    public List<Prediction> findByIds(Collection<ObjectId> ids) {
+        return mongoCollection().find(Filters.in("_id", ids)).into(new ArrayList<>());
     }
 
     public void insert(ClientSession session, Prediction prediction) {
