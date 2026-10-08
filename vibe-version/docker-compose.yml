@@ -1,0 +1,41 @@
+name: sisu-market-vibe
+
+services:
+  mongo:
+    image: mongo:7.0
+    # Single-node replica set: needed for multi-document transactions (balance + ledger entry).
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      # Initiates the replica set on first run; healthy once this node is primary.
+      test:
+        - CMD
+        - mongosh
+        - --quiet
+        - --eval
+        - "try { rs.status() } catch (e) { rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'mongo:27017'}]}) } quit(db.hello().isWritablePrimary ? 0 : 1)"
+      interval: 5s
+      timeout: 10s
+      retries: 30
+
+  backend:
+    build: ./backend
+    environment:
+      MONGODB_URI: mongodb://mongo:27017/?replicaSet=rs0
+      CORS_ORIGINS: http://localhost:3100
+    depends_on:
+      mongo:
+        condition: service_healthy
+    ports:
+      - "8180:8080"   # exposed for direct API access; the UI goes through nginx
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "3100:80"
+
+volumes:
+  mongo-data:
