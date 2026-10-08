@@ -19,6 +19,8 @@ public class LedgerEntry {
     public long amount;
     /** User's balance immediately after this change. */
     public long balanceAfter;
+    /** The user's {@code balanceVersion} after this change. */
+    public long balanceVersion;
     public String description;
     /** Related prediction, when the change came from one. */
     public ObjectId predictionId;

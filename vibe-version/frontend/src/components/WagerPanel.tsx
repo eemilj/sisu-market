@@ -1,8 +1,9 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { api, ApiError, type Outcome, type Prediction } from '../api';
+import { api, ApiError, type Outcome, type Prediction, type Quote } from '../api';
 import { useAuth } from '../auth';
-import { formatSisu } from '../format';
+import { formatProbability, formatSisu } from '../format';
+import { useIsOpen } from '../useIsOpen';
 
 interface Props {
   prediction: Prediction;
@@ -10,6 +11,7 @@ interface Props {
 }
 
 const QUICK_AMOUNTS = [10, 50, 100];
+const QUOTE_DELAY_MS = 250;
 
 /** Validates the typed amount against the rules the server enforces. Returns an error message or null. */
 function amountProblem(raw: string, balance: number): string | null {
@@ -21,19 +23,54 @@ function amountProblem(raw: string, balance: number): string | null {
   return null;
 }
 
+function newRequestId(): string {
+  // randomUUID needs a secure context (https or localhost); fall back elsewhere.
+  return globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
 export default function WagerPanel({ prediction: p, onWagered }: Props) {
-  const { user, setBalance, refreshUser } = useAuth();
+  const { user, applyBalance, refreshUser } = useAuth();
   const [side, setSide] = useState<Outcome | null>(null);
   const [amount, setAmount] = useState('');
+  const [quote, setQuote] = useState<Quote | null>(null);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [confirmation, setConfirmation] = useState<string | null>(null);
+  const [quoteVersion, setQuoteVersion] = useState(0);
+  /** One idempotency key per intended wager, reused if the same submit is retried after a lost response. */
+  const requestId = useRef<string | null>(null);
 
-  const noPercent = 100 - p.yesPercent;
-  const isOpen = p.status === 'OPEN' && new Date(p.closesAt).getTime() > Date.now();
+  const balance = user?.balance ?? 0;
+  const problem = amountProblem(amount, balance);
+  const isOpen = useIsOpen(p);
+
+  // Fetch a fresh quote whenever the wager or the market changes (debounced while typing).
+  useEffect(() => {
+    setQuote(null);
+    setQuoteError(null);
+    if (!side || problem) return;
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      api
+        .quote(p.id, side, Number(amount), controller.signal)
+        .then(setQuote)
+        .catch((err: Error) => !controller.signal.aborted && setQuoteError(err.message));
+    }, QUOTE_DELAY_MS);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [p.id, p.yesProbability, side, amount, problem, quoteVersion]);
+
+  // A different wager is a different request.
+  useEffect(() => {
+    requestId.current = null;
+  }, [side, amount]);
 
   if (!isOpen) return <p className="wager-closed">Wagering closed</p>;
 
+  const noPercent = 100 - p.yesPercent;
   if (!user) {
     return (
       <div className="wager-sides">
@@ -43,9 +80,6 @@ export default function WagerPanel({ prediction: p, onWagered }: Props) {
     );
   }
 
-  const balance = user.balance;
-  const problem = amountProblem(amount, balance);
-
   function choose(next: Outcome) {
     setSide(next);
     setError(null);
@@ -54,24 +88,42 @@ export default function WagerPanel({ prediction: p, onWagered }: Props) {
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    if (!side || problem) return;
+    if (!side || problem || !quote) return;
+    requestId.current ??= newRequestId();
     setSubmitting(true);
     setError(null);
     try {
-      const result = await api.placeWager(p.id, side, Number(amount));
-      setBalance(result.balance);
+      const result = await api.placeWager(p.id, {
+        side,
+        amount: quote.amount,
+        minPayout: quote.payoutIfWin,
+        requestId: requestId.current,
+      });
+      requestId.current = null;
+      applyBalance(result.balance, result.balanceVersion);
       onWagered(result.prediction);
-      setConfirmation(`You wagered ${formatSisu(result.wager.amount)} on ${result.wager.side}.`);
+      setConfirmation(
+        `You wagered ${formatSisu(result.wager.amount)} on ${result.wager.side}. ` +
+          `If ${result.wager.side} wins you receive ${formatSisu(result.wager.payoutIfWin)}.`,
+      );
       setSide(null);
       setAmount('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Wager failed');
-      // A conflict means our view was stale (balance spent elsewhere, or the market closed): resync the balance.
-      if (err instanceof ApiError && err.status === 409) void refreshUser();
+      if (err instanceof ApiError && err.status === 409) {
+        // Odds moved, market closed or balance spent elsewhere: nothing was placed, so resync and requote.
+        requestId.current = null;
+        void refreshUser();
+        setQuoteVersion((v) => v + 1);
+      }
+      // Network failure (status 0): keep the requestId so resubmitting can't double-wager.
     } finally {
       setSubmitting(false);
     }
   }
+
+  const sideProbability = side === 'NO' ? 1 - p.yesProbability : p.yesProbability;
+  const quoteForCurrentInput = quote && side === quote.side && Number(amount) === quote.amount ? quote : null;
 
   return (
     <div className="wager">
@@ -117,11 +169,52 @@ export default function WagerPanel({ prediction: p, onWagered }: Props) {
           <p id={`wager-hint-${p.id}`} className={`wager-hint ${amount && problem ? 'is-error' : ''}`}>
             {amount && problem ? problem : `Balance: ${formatSisu(balance)}`}
           </p>
+
+          {!problem && (
+            <dl className="quote" aria-live="polite">
+              <div className="quote-payout">
+                <dt>Payout if {side} wins</dt>
+                <dd>
+                  {quoteForCurrentInput ? (
+                    <>
+                      {formatSisu(quoteForCurrentInput.payoutIfWin)}{' '}
+                      <span className="quote-multiple">
+                        ({(quoteForCurrentInput.payoutIfWin / quoteForCurrentInput.amount).toFixed(2)}×)
+                      </span>
+                    </>
+                  ) : quoteError ? '—' : 'Calculating…'}
+                </dd>
+              </div>
+              <div>
+                <dt>{side} odds now</dt>
+                <dd>{formatProbability(sideProbability)}</dd>
+              </div>
+              {quoteForCurrentInput && (
+                <>
+                  <div>
+                    <dt>Your average price</dt>
+                    <dd>{formatProbability(quoteForCurrentInput.averagePrice)}</dd>
+                  </div>
+                  <div>
+                    <dt>{side} odds after</dt>
+                    <dd>
+                      {formatProbability(side === 'YES'
+                        ? quoteForCurrentInput.yesProbabilityAfter
+                        : 1 - quoteForCurrentInput.yesProbabilityAfter)}
+                    </dd>
+                  </div>
+                </>
+              )}
+            </dl>
+          )}
+          {quoteError && <p className="alert">{quoteError}</p>}
+          <p className="wager-terms">The payout is locked when you place the wager. If {side} loses, you lose your stake.</p>
           {error && <p className="alert" role="alert">{error}</p>}
+
           <div className="wager-actions">
             <button type="button" className="btn btn-ghost" onClick={() => setSide(null)}>Cancel</button>
             <button type="submit" className={`btn ${side === 'YES' ? 'btn-yes' : 'btn-no'} is-selected`}
-                    disabled={submitting || problem !== null}>
+                    disabled={submitting || problem !== null || !quoteForCurrentInput}>
               {submitting ? 'Placing…' : `Wager ${problem ? '' : formatSisu(Number(amount)) + ' '}on ${side}`}
             </button>
           </div>

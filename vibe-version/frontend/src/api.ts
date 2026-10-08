@@ -7,7 +7,11 @@ export interface User {
   username: string;
   email: string;
   balance: number;
+  /** Increases with every balance change; used to ignore out-of-order updates. */
+  balanceVersion: number;
   createdAt: string;
+  /** May resolve any prediction. */
+  admin: boolean;
 }
 
 export interface AuthResponse {
@@ -25,14 +29,21 @@ export interface Prediction {
   status: PredictionStatus;
   outcome: Outcome | null;
   closesAt: string;
+  /** Price of a YES share = implied chance of YES, 0-1. */
+  yesProbability: number;
+  /** yesProbability as a whole percentage. */
   yesPercent: number;
-  volume: number;
+  /** Total Sisu wagered by users. */
+  totalWagered: number;
   /** Creator's username; null for seeded predictions. */
   createdBy: string | null;
   createdAt: string;
+  resolvedAt: string | null;
+  /** Increases with every change; used to ignore out-of-order updates. */
+  version: number;
 }
 
-export type TransactionType = 'SIGNUP_BONUS' | 'OPENING_BALANCE' | 'WAGER';
+export type TransactionType = 'SIGNUP_BONUS' | 'OPENING_BALANCE' | 'WAGER' | 'WAGER_REFUND' | 'PAYOUT';
 
 export interface Transaction {
   id: string;
@@ -56,16 +67,86 @@ export interface Wager {
   predictionId: string;
   side: Outcome;
   amount: number;
+  shares: number;
+  /** Sisu paid if this side wins; fixed when the wager was placed. */
+  payoutIfWin: number;
+  averagePrice: number;
+  status: WagerStatus;
   createdAt: string;
+  /** Sisu actually paid at settlement; null until resolved. */
+  payout: number | null;
+  settledAt: string | null;
+}
+
+export type WagerStatus = 'OPEN' | 'WON' | 'LOST' | 'REFUNDED';
+
+export interface WagerHistoryItem {
+  wager: Wager;
+  question: string;
+  predictionStatus: PredictionStatus | null;
+  outcome: Outcome | null;
+}
+
+export interface Page<T> {
+  items: T[];
+  nextCursor: string | null;
+}
+
+export interface Profile {
+  username: string;
+  balance: number;
+  /** Competition rank by balance (ties share a rank). */
+  rank: number;
+  joinedAt: string;
+  predictionsCreated: number;
+  admin: boolean;
+}
+
+export interface LeaderboardEntry {
+  rank: number;
+  username: string;
+  balance: number;
+}
+
+export interface Leaderboard {
+  entries: LeaderboardEntry[];
+  /** The caller's row if logged in and outside `entries`. */
+  me: LeaderboardEntry | null;
+}
+
+export interface ResolutionResult {
+  prediction: Prediction;
+  winningWagers: number;
+  losingWagers: number;
+  totalPaidOut: number;
+}
+
+/** What a wager would get right now. */
+export interface Quote {
+  side: Outcome;
+  amount: number;
+  shares: number;
+  payoutIfWin: number;
+  averagePrice: number;
+  yesProbabilityBefore: number;
+  yesProbabilityAfter: number;
 }
 
 export interface WagerResult {
   wager: Wager;
   /** User's balance after the wager. */
   balance: number;
+  balanceVersion: number;
   /** Prediction with updated pools and odds. */
   prediction: Prediction;
 }
+
+/** Events pushed by GET /api/events. */
+export type LiveEvent =
+  | { type: 'ready'; data: { authenticated: boolean } }
+  | { type: 'prediction.created'; data: Prediction }
+  | { type: 'prediction.updated'; data: Prediction }
+  | { type: 'wallet.transaction'; data: { transaction: Transaction; balance: number; balanceVersion: number } };
 
 export interface NewPrediction {
   question: string;
@@ -137,10 +218,36 @@ export const api = {
   createPrediction: (prediction: NewPrediction) =>
     request<Prediction>('/api/predictions', { method: 'POST', body: JSON.stringify(prediction) }),
 
-  placeWager: (predictionId: string, side: Outcome, amount: number) =>
+  resolve: (predictionId: string, outcome: Outcome) =>
+    request<ResolutionResult>(`/api/predictions/${encodeURIComponent(predictionId)}/resolve`, {
+      method: 'POST',
+      body: JSON.stringify({ outcome }),
+    }),
+
+  profile: (username: string) => request<Profile>(`/api/profiles/${encodeURIComponent(username)}`),
+
+  profilePredictions: (username: string) =>
+    request<Prediction[]>(`/api/profiles/${encodeURIComponent(username)}/predictions`),
+
+  myWagers: (before?: string | null) =>
+    request<Page<WagerHistoryItem>>(`/api/users/me/wagers${before ? `?before=${encodeURIComponent(before)}` : ''}`),
+
+  leaderboard: (limit = 25) => request<Leaderboard>(`/api/leaderboard?limit=${limit}`),
+
+  quote: (predictionId: string, side: Outcome, amount: number, signal?: AbortSignal) =>
+    request<Quote>(
+      `/api/predictions/${encodeURIComponent(predictionId)}/quote?side=${side}&amount=${amount}`,
+      { signal },
+    ),
+
+  /**
+   * `minPayout`: reject if the payout would be lower than this (send the quoted payout).
+   * `requestId`: idempotency key; resending the same one never places a second wager.
+   */
+  placeWager: (predictionId: string, wager: { side: Outcome; amount: number; minPayout: number; requestId: string }) =>
     request<WagerResult>(`/api/predictions/${encodeURIComponent(predictionId)}/wagers`, {
       method: 'POST',
-      body: JSON.stringify({ side, amount }),
+      body: JSON.stringify(wager),
     }),
 
   predictions: (filters: { category?: Category | 'ALL'; status?: PredictionStatus | 'ALL' } = {}) => {

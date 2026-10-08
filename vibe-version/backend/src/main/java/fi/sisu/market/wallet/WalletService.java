@@ -1,5 +1,9 @@
 package fi.sisu.market.wallet;
 
+import com.mongodb.ReadConcern;
+import com.mongodb.ReadPreference;
+import com.mongodb.TransactionOptions;
+import com.mongodb.WriteConcern;
 import com.mongodb.client.ClientSession;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.model.Filters;
@@ -7,6 +11,8 @@ import com.mongodb.client.model.FindOneAndUpdateOptions;
 import com.mongodb.client.model.ReturnDocument;
 import com.mongodb.client.model.Updates;
 import fi.sisu.market.common.ApiException;
+import fi.sisu.market.live.EventHub;
+import fi.sisu.market.live.LiveEvent;
 import fi.sisu.market.user.User;
 import fi.sisu.market.user.UserRepository;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -15,6 +21,11 @@ import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 /**
@@ -23,6 +34,17 @@ import java.util.function.Function;
  */
 @ApplicationScoped
 public class WalletService {
+
+    /**
+     * Snapshot reads give each attempt a consistent view; majority writes mean a committed transaction
+     * survives a primary failover. Concurrent transactions touching the same document hit a write
+     * conflict, which the driver retries from the start.
+     */
+    private static final TransactionOptions TX_OPTIONS = TransactionOptions.builder()
+            .readConcern(ReadConcern.SNAPSHOT)
+            .writeConcern(WriteConcern.MAJORITY)
+            .readPreference(ReadPreference.primary())
+            .build();
 
     @Inject
     MongoClient mongoClient;
@@ -33,14 +55,37 @@ public class WalletService {
     @Inject
     LedgerRepository ledger;
 
+    @Inject
+    EventHub events;
+
+    /** Ledger entries written by each open transaction, announced only once it commits. */
+    private final Map<ClientSession, List<LedgerEntry>> uncommitted = Collections.synchronizedMap(new IdentityHashMap<>());
+
     /**
      * Runs {@code work} in a MongoDB transaction (requires a replica set). The driver retries on transient
      * errors, so {@code work} may run more than once and must only touch the database through the session.
+     * Balance changes made inside are pushed to their users after the commit, never for a rolled-back attempt.
      */
     public <T> T inTransaction(Function<ClientSession, T> work) {
         try (ClientSession session = mongoClient.startSession()) {
-            return session.withTransaction(() -> work.apply(session));
+            List<LedgerEntry> written = new ArrayList<>();
+            uncommitted.put(session, written);
+            try {
+                T result = session.withTransaction(() -> {
+                    written.clear(); // a retried attempt starts over
+                    return work.apply(session);
+                }, TX_OPTIONS);
+                written.forEach(this::announce);
+                return result;
+            } finally {
+                uncommitted.remove(session);
+            }
         }
+    }
+
+    private void announce(LedgerEntry entry) {
+        events.publish(LiveEvent.toUser(entry.userId, LiveEvent.WALLET_TRANSACTION,
+                new WalletEvent(LedgerEntryDto.from(entry), entry.balanceAfter, entry.balanceVersion)));
     }
 
     /** Applies one balance change in its own transaction. */
@@ -62,7 +107,7 @@ public class WalletService {
         Bson filter = amount > 0
                 ? Filters.eq("_id", userId)
                 : Filters.and(Filters.eq("_id", userId), Filters.gte("balance", -amount));
-        User updated = users.mongoCollection().findOneAndUpdate(session, filter, Updates.inc("balance", amount),
+        User updated = users.mongoCollection().findOneAndUpdate(session, filter, Updates.combine(Updates.inc("balance", amount), Updates.inc("balanceVersion", 1)),
                 new FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER));
         if (updated == null) {
             if (users.mongoCollection().countDocuments(session, Filters.eq("_id", userId)) == 0) {
@@ -77,10 +122,15 @@ public class WalletService {
         entry.type = type;
         entry.amount = amount;
         entry.balanceAfter = updated.balance;
+        entry.balanceVersion = updated.balanceVersion;
         entry.description = description;
         entry.predictionId = predictionId;
         entry.createdAt = Instant.now();
         ledger.mongoCollection().insertOne(session, entry);
+        List<LedgerEntry> written = uncommitted.get(session);
+        if (written != null) {
+            written.add(entry);
+        }
         return entry;
     }
 }

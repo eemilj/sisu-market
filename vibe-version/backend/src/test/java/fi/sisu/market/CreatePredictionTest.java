@@ -59,7 +59,8 @@ class CreatePredictionTest {
                 .body("status", equalTo("OPEN"))
                 .body("createdBy", equalTo(username))
                 .body("yesPercent", equalTo(50))
-                .body("volume", equalTo(0))
+                .body("totalWagered", equalTo(0))
+                .body("yesProbability", equalTo(0.5f))
                 .extract().path("id");
 
         given().queryParam("status", "OPEN").when().get("/api/predictions")

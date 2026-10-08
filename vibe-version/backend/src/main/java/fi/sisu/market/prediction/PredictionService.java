@@ -1,10 +1,15 @@
 package fi.sisu.market.prediction;
 
 import fi.sisu.market.common.ApiException;
+import fi.sisu.market.live.EventHub;
+import fi.sisu.market.live.LiveEvent;
+import fi.sisu.market.pricing.Cpmm;
 import fi.sisu.market.user.User;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -18,8 +23,17 @@ public class PredictionService {
     /** Keeps markets resolvable within a sensible horizon. */
     static final Duration MAX_OPEN_TIME = Duration.ofDays(5 * 365);
 
+    /** New predictions open at even odds. */
+    private static final BigDecimal OPENING_PROBABILITY = new BigDecimal("0.5");
+
     @Inject
     PredictionRepository predictions;
+
+    @ConfigProperty(name = "sisu.market.liquidity")
+    long liquidity;
+
+    @Inject
+    EventHub events;
 
     public Prediction create(CreatePredictionRequest request, User creator) {
         Instant now = Instant.now();
@@ -38,12 +52,13 @@ public class PredictionService {
         p.category = request.category();
         p.closesAt = closesAt;
         p.status = PredictionStatus.OPEN;
-        p.yesPool = 0;
-        p.noPool = 0;
+        p.updatePool(Cpmm.initialPool(liquidity, OPENING_PROBABILITY));
+        p.totalWagered = 0;
         p.createdById = creator.id;
         p.createdBy = creator.username;
         p.createdAt = now;
         predictions.persist(p);
+        events.publish(LiveEvent.toEveryone(LiveEvent.PREDICTION_CREATED, PredictionDto.from(p, now)));
         return p;
     }
 

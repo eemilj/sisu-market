@@ -27,13 +27,16 @@ public class DemoDataSeeder {
     @ConfigProperty(name = "sisu.seed-demo-data", defaultValue = "true")
     boolean seed;
 
+    @ConfigProperty(name = "sisu.market.liquidity")
+    long liquidity;
+
     void onStart(@Observes StartupEvent event) {
         users.ensureIndexes();
         predictions.ensureIndexes();
         wagers.ensureIndexes();
 
         if (seed && predictions.count() == 0) {
-            predictions.persist(DemoData.predictions());
+            predictions.persist(DemoData.predictions(liquidity));
             LOG.infof("Seeded %d demo predictions", predictions.count());
         }
     }

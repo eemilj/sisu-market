@@ -18,5 +18,7 @@ public class User {
     public String passwordHash;
     /** Virtual Sisu balance, whole units. Change it only through WalletService so the ledger stays in sync. */
     public long balance;
+    /** Incremented with every balance change, so clients can order balance updates. */
+    public long balanceVersion;
     public Instant createdAt;
 }

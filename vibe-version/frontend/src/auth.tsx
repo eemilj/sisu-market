@@ -10,8 +10,11 @@ interface AuthState {
   logout: () => void;
   /** Re-reads the user (and so the balance) from the server. */
   refreshUser: () => Promise<void>;
-  /** Applies a balance the server just reported (e.g. after a wager) without another round trip. */
-  setBalance: (balance: number) => void;
+  /**
+   * Applies a balance the server reported (wager response or live event). Ignored if it is older than the
+   * balance already shown, since updates can arrive out of order.
+   */
+  applyBalance: (balance: number, balanceVersion: number) => void;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -67,7 +70,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
       },
       refreshUser,
-      setBalance: (balance) => setUser((u) => (u ? { ...u, balance } : u)),
+      applyBalance: (balance, balanceVersion) =>
+        setUser((u) => (u && balanceVersion > u.balanceVersion ? { ...u, balance, balanceVersion } : u)),
     }),
     [user, loading, accept, refreshUser],
   );

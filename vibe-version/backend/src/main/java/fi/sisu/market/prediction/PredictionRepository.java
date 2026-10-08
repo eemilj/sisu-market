@@ -6,6 +6,7 @@ import com.mongodb.client.model.Sorts;
 import io.quarkus.mongodb.panache.PanacheMongoRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.bson.conversions.Bson;
+import org.bson.types.ObjectId;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -40,7 +41,19 @@ public class PredictionRepository implements PanacheMongoRepository<Prediction> 
         return mongoCollection().find(filter).sort(Sorts.ascending("closesAt")).into(new ArrayList<>());
     }
 
+    /** Newest first. */
+    public List<Prediction> createdBy(ObjectId userId) {
+        return mongoCollection().find(Filters.eq("createdById", userId))
+                .sort(Sorts.descending("createdAt"))
+                .into(new ArrayList<>());
+    }
+
+    public List<Prediction> byIds(java.util.Collection<ObjectId> ids) {
+        return mongoCollection().find(Filters.in("_id", ids)).into(new ArrayList<>());
+    }
+
     public void ensureIndexes() {
+        mongoCollection().createIndex(Indexes.ascending("createdById"));
         mongoCollection().createIndex(Indexes.ascending("status", "closesAt"));
         mongoCollection().createIndex(Indexes.ascending("category"));
     }

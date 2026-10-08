@@ -3,6 +3,7 @@ package fi.sisu.market.auth;
 import com.mongodb.ErrorCategory;
 import com.mongodb.MongoException;
 import fi.sisu.market.common.ApiException;
+import fi.sisu.market.user.AdminPolicy;
 import fi.sisu.market.user.User;
 import fi.sisu.market.user.UserDto;
 import fi.sisu.market.user.UserRepository;
@@ -32,6 +33,9 @@ public class AuthService {
 
     @Inject
     WalletService wallet;
+
+    @Inject
+    AdminPolicy adminPolicy;
 
     @ConfigProperty(name = "sisu.starting-balance")
     long startingBalance;
@@ -70,7 +74,7 @@ public class AuthService {
             }
             throw e;
         }
-        return new AuthResponse(tokens.issue(user), UserDto.from(user));
+        return new AuthResponse(tokens.issue(user), UserDto.from(user, adminPolicy.isAdmin(user)));
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -81,6 +85,6 @@ public class AuthService {
             throw ApiException.unauthorized(INVALID_CREDENTIALS);
         }
         User user = found.get();
-        return new AuthResponse(tokens.issue(user), UserDto.from(user));
+        return new AuthResponse(tokens.issue(user), UserDto.from(user, adminPolicy.isAdmin(user)));
     }
 }

@@ -11,17 +11,21 @@ public record PredictionDto(
         PredictionStatus status,
         Outcome outcome,
         Instant closesAt,
-        /** Implied chance of YES, 0-100. 50 when nothing has been staked yet. */
+        /** Current price of a YES share = implied chance of YES, 0-1. NO is 1 - this. */
+        double yesProbability,
+        /** {@code yesProbability} as a whole percentage, for display. */
         int yesPercent,
-        /** Total Sisu staked on both sides. */
-        long volume,
+        /** Total Sisu wagered by users on both sides. */
+        long totalWagered,
         /** Creator's username, or null for seeded predictions. */
         String createdBy,
-        Instant createdAt) {
+        Instant createdAt,
+        Instant resolvedAt,
+        /** Higher = newer; clients keep the highest version they have seen. */
+        long version) {
 
     public static PredictionDto from(Prediction p, Instant now) {
-        long volume = p.yesPool + p.noPool;
-        int yesPercent = volume == 0 ? 50 : (int) Math.round(100.0 * p.yesPool / volume);
+        double yes = p.pool().yesProbability();
         return new PredictionDto(
                 p.id.toHexString(),
                 p.question,
@@ -31,9 +35,12 @@ public record PredictionDto(
                 p.effectiveStatus(now),
                 p.outcome,
                 p.closesAt,
-                yesPercent,
-                volume,
+                yes,
+                (int) Math.round(100 * yes),
+                p.totalWagered,
                 p.createdBy,
-                p.createdAt);
+                p.createdAt,
+                p.resolvedAt,
+                p.version);
     }
 }
