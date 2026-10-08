@@ -24,7 +24,7 @@ public record PlaceWagerRequest(
 
         @NotNull(message = "Amount is required")
         @Positive(message = "Amount must be greater than zero")
-        @Digits(integer = 15, fraction = 0, message = "Amount must be a whole number of Sisu")
+        @Digits(integer = 13, fraction = 0, message = "Amount must be a whole number of Sisu")
         BigDecimal amount,
 
         @Min(value = 0, message = "minPayout must not be negative")

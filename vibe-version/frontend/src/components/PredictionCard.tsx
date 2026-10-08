@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { Prediction } from '../api';
-import { categoryLabels, formatDate, formatSisu } from '../format';
+import type { Prediction, ResolutionResult } from '../api';
+import { categoryLabels, formatDateTime, formatPercent, formatSisu, formatWhen, outcomeLabels, plural } from '../format';
 import WagerPanel from './WagerPanel';
 import ResolvePanel from './ResolvePanel';
 import { useAuth } from '../auth';
@@ -17,6 +17,8 @@ export default function PredictionCard({ prediction: p, highlighted = false, onU
   const noPercent = 100 - p.yesPercent;
   const { user } = useAuth();
   const isOpen = useIsOpen(p);
+  /** Set when this user resolved it here, to show what was paid. */
+  const [resolutionSummary, setResolutionSummary] = useState<ResolutionResult | null>(null);
   const awaitingResolution = !isOpen && p.status !== 'RESOLVED';
   // The server also refuses creators who wagered on their own prediction; it explains why if they try.
   const mayResolve = !!user && (user.admin || user.username === p.createdBy);
@@ -40,23 +42,23 @@ export default function PredictionCard({ prediction: p, highlighted = false, onU
       <div className="card-top">
         <span className={`tag tag-${p.category.toLowerCase()}`}>{categoryLabels[p.category]}</span>
         {p.status === 'RESOLVED' && p.outcome && (
-          <span className={`tag tag-outcome-${p.outcome.toLowerCase()}`}>Resolved {p.outcome}</span>
+          <span className={`tag tag-outcome-${p.outcome.toLowerCase()}`}>Ratkesi: {outcomeLabels[p.outcome]}</span>
         )}
-        {awaitingResolution && <span className="tag tag-status">Closed</span>}
+        {awaitingResolution && <span className="tag tag-status">Suljettu</span>}
       </div>
       <h3 className="card-question">{p.question}</h3>
       <p className="card-description">{p.description}</p>
       {p.resolutionCriteria && (
         <details className="card-criteria">
-          <summary>How it resolves</summary>
+          <summary>Miten ennuste ratkeaa</summary>
           <p>{p.resolutionCriteria}</p>
         </details>
       )}
 
-      <div className="odds" aria-label={`Yes ${p.yesPercent} percent, No ${noPercent} percent`}>
+      <div className="odds" aria-label={`Todennäköisyys: KYLLÄ ${formatPercent(p.yesPercent)}, EI ${formatPercent(noPercent)}`}>
         <div className="odds-labels">
-          <span className="yes">Yes {p.yesPercent}%</span>
-          <span className="no">No {noPercent}%</span>
+          <span className="yes">KYLLÄ {formatPercent(p.yesPercent)}</span>
+          <span className="no">EI {formatPercent(noPercent)}</span>
         </div>
         <div className="odds-bar">
           <div className="odds-yes" style={{ width: `${p.yesPercent}%` }} />
@@ -66,24 +68,34 @@ export default function PredictionCard({ prediction: p, highlighted = false, onU
       {isOpen && <WagerPanel prediction={p} onWagered={(updated) => onUpdated?.(updated)} />}
       {awaitingResolution && (
         mayResolve
-          ? <ResolvePanel prediction={p} onResolved={(updated) => onUpdated?.(updated)} />
-          : <p className="wager-closed">Wagering closed · awaiting resolution</p>
+          ? <ResolvePanel prediction={p} onResolved={(result) => { setResolutionSummary(result); onUpdated?.(result.prediction); }} />
+          : <p className="wager-closed">Panostus on päättynyt · odottaa ratkaisua</p>
       )}
       {p.status === 'RESOLVED' && p.outcome && (
         <p className={`resolved-banner resolved-${p.outcome.toLowerCase()}`}>
-          Resolved <strong>{p.outcome}</strong>{p.resolvedAt && <> on {formatDate(p.resolvedAt)}</>}. {p.outcome} wagers were paid out.
+          Ratkesi <strong>{outcomeLabels[p.outcome]}</strong>{p.resolvedAt && <> {formatWhen(p.resolvedAt)}</>}.
+          {' '}{outcomeLabels[p.outcome]}-panosten voitot on maksettu.
+          {resolutionSummary && (
+            <span className="resolved-summary" role="status">
+              {resolutionSummary.winningWagers === 0
+                ? 'Voittavia panoksia ei ollut, joten mitään ei maksettu.'
+                : `Maksettiin ${formatSisu(resolutionSummary.totalPaidOut)} – ${plural(resolutionSummary.winningWagers, 'voittava panos', 'voittavaa panosta')}.`}
+            </span>
+          )}
         </p>
       )}
 
       <footer className="card-footer">
         <span>
-          {formatSisu(p.totalWagered)} wagered
+          Panostettu {formatSisu(p.totalWagered)}
           {p.createdBy && (
-            <> · by <Link to={`/users/${encodeURIComponent(p.createdBy)}`}>{p.createdBy}</Link></>
+            <> · <Link to={`/users/${encodeURIComponent(p.createdBy)}`}>{p.createdBy}</Link></>
           )}
         </span>
         <span>
-          {isOpen ? `Closes ${formatDate(p.closesAt)}` : `Closed ${formatDate(p.closesAt)}`}
+          <time dateTime={p.closesAt} title={formatDateTime(p.closesAt)}>
+            {isOpen ? `Sulkeutuu ${formatWhen(p.closesAt)}` : `Sulkeutui ${formatWhen(p.closesAt)}`}
+          </time>
         </span>
       </footer>
     </article>

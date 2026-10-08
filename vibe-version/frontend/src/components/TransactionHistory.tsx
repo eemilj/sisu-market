@@ -1,15 +1,7 @@
 import { useEffect, useState } from 'react';
-import { api, type Transaction, type TransactionType } from '../api';
+import { api, type Transaction } from '../api';
 import { useLiveEvents } from '../live';
-import { formatDateTime, formatSignedSisu, formatSisu } from '../format';
-
-const typeLabels: Record<TransactionType, string> = {
-  SIGNUP_BONUS: 'Bonus',
-  OPENING_BALANCE: 'Opening',
-  WAGER: 'Wager',
-  WAGER_REFUND: 'Refund',
-  PAYOUT: 'Payout',
-};
+import { formatDateTime, formatSignedSisu, formatSisu, transactionLabels } from '../format';
 
 /** The logged-in user's balance changes, newest first, updating live. */
 export default function TransactionHistory() {
@@ -59,15 +51,15 @@ export default function TransactionHistory() {
       setItems((prev) => [...(prev ?? []), ...page.items]);
       setNextCursor(page.nextCursor);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not load more');
+      setError(err instanceof Error ? err.message : 'Vanhempia tapahtumia ei voitu ladata. Yritä uudelleen.');
     } finally {
       setLoadingMore(false);
     }
   }
 
   if (error) return <p className="alert">{error}</p>;
-  if (items === null) return <p className="muted">Loading history…</p>;
-  if (items.length === 0) return <p className="muted">No transactions yet.</p>;
+  if (items === null) return <p className="muted">Ladataan tapahtumia…</p>;
+  if (items.length === 0) return <p className="muted">Ei vielä tapahtumia.</p>;
 
   return (
     <>
@@ -75,22 +67,22 @@ export default function TransactionHistory() {
         {items.map((t) => (
           <li key={t.id} className="ledger-row">
             <div className="ledger-main">
-              <span className="ledger-desc">{t.description}</span>
+              <span className="ledger-desc">{t.predictionQuestion ?? transactionLabels[t.type] ?? t.description}</span>
               <span className="ledger-meta">
-                <span className="tag">{typeLabels[t.type] ?? t.type}</span>
+                <span className={`tag tx-${t.type.toLowerCase()}`}>{transactionLabels[t.type] ?? t.type}</span>
                 {formatDateTime(t.createdAt)}
               </span>
             </div>
             <div className="ledger-amounts">
               <span className={t.amount >= 0 ? 'amount-credit' : 'amount-debit'}>{formatSignedSisu(t.amount)}</span>
-              <span className="ledger-after">Balance {formatSisu(t.balanceAfter)}</span>
+              <span className="ledger-after">Saldo {formatSisu(t.balanceAfter)}</span>
             </div>
           </li>
         ))}
       </ul>
       {nextCursor && (
         <button className="btn btn-ghost btn-block" onClick={loadMore} disabled={loadingMore}>
-          {loadingMore ? 'Loading…' : 'Load older transactions'}
+          {loadingMore ? 'Ladataan…' : 'Näytä vanhemmat tapahtumat'}
         </button>
       )}
     </>

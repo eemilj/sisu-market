@@ -1,6 +1,7 @@
 package fi.sisu.market.wager;
 
 import fi.sisu.market.common.ApiException;
+import fi.sisu.market.common.ErrorCode;
 import fi.sisu.market.prediction.Outcome;
 import fi.sisu.market.user.CurrentUser;
 import io.quarkus.security.Authenticated;
@@ -18,7 +19,6 @@ import jakarta.ws.rs.core.MediaType;
 import org.bson.types.ObjectId;
 import org.jboss.resteasy.reactive.RestResponse;
 
-import java.math.BigDecimal;
 import java.util.Locale;
 
 @Path("/api/predictions/{predictionId}")
@@ -38,21 +38,15 @@ public class WagerResource {
                           @QueryParam("side") String side,
                           @QueryParam("amount") String amount) {
         if (side == null || amount == null) {
-            throw ApiException.badRequest("side and amount are required");
+            throw ApiException.badRequest(ErrorCode.QUOTE_PARAMS_REQUIRED, "side and amount are required");
         }
         Outcome outcome;
         try {
             outcome = Outcome.valueOf(side.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
-            throw ApiException.badRequest("side must be YES or NO");
+            throw ApiException.badRequest(ErrorCode.SIDE_INVALID, "side must be YES or NO");
         }
-        long parsed;
-        try {
-            parsed = new BigDecimal(amount.trim()).longValueExact();
-        } catch (NumberFormatException | ArithmeticException e) {
-            throw ApiException.badRequest("Amount must be a whole number of Sisu");
-        }
-        return service.quote(parseId(predictionId), outcome, parsed);
+        return service.quote(parseId(predictionId), outcome, WagerAmounts.parse(amount));
     }
 
     /** 201 with the new wager, or 200 with the original one when {@code requestId} was already used. */
@@ -63,13 +57,7 @@ public class WagerResource {
     public RestResponse<WagerResult> place(@PathParam("predictionId") String predictionId,
                                            @NotNull(message = "Request body is required") @Valid PlaceWagerRequest request) {
         ObjectId id = parseId(predictionId);
-        // @Digits(fraction = 0) and @Positive guarantee a positive integer; longValueExact guards the range.
-        long amount;
-        try {
-            amount = request.amount().longValueExact();
-        } catch (ArithmeticException e) {
-            throw ApiException.badRequest("Amount must be a whole number of Sisu");
-        }
+        long amount = WagerAmounts.toWholeSisu(request.amount());
         WagerService.Placement placement = service.place(currentUser.require().id, id, request.side(), amount,
                 request.minPayout(), request.requestId());
         return placement.replayed()
@@ -79,7 +67,7 @@ public class WagerResource {
 
     private static ObjectId parseId(String id) {
         if (!ObjectId.isValid(id)) {
-            throw ApiException.notFound("Prediction not found");
+            throw ApiException.notFound(ErrorCode.PREDICTION_NOT_FOUND, "Prediction not found");
         }
         return new ObjectId(id);
     }

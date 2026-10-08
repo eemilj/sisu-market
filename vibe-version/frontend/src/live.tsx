@@ -2,7 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { tokenStore, type LiveEvent } from './api';
 import { useAuth } from './auth';
 
-export type LiveStatus = 'connecting' | 'live' | 'reconnecting';
+/** 'paused': this tab is in the background and has released its connection. */
+export type LiveStatus = 'connecting' | 'live' | 'reconnecting' | 'paused';
 type Listener = (event: LiveEvent) => void;
 
 interface LiveState {
@@ -17,6 +18,8 @@ const MIN_RETRY_MS = 1_000;
 const MAX_RETRY_MS = 30_000;
 /** The server sends a heartbeat every 20 s; silence for longer than this means the connection is dead. */
 const SILENCE_LIMIT_MS = 45_000;
+/** A tab hidden this long releases its connection (short switches between tabs keep it). */
+const HIDDEN_GRACE_MS = 10_000;
 
 /**
  * Keeps one Server-Sent Events connection to /api/events open for the whole app. Uses fetch rather than
@@ -31,9 +34,12 @@ export function LiveProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (loading) return;
-    let stopped = false;
+    let disposed = false;
+    /** True while this tab wants a connection (visible and not being unloaded). */
+    let running = false;
     let controller: AbortController | null = null;
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    let hiddenTimer: ReturnType<typeof setTimeout> | undefined;
     let retryDelay = MIN_RETRY_MS;
 
     const dispatch = (event: LiveEvent) => listeners.current.forEach((listener) => listener(event));
@@ -83,18 +89,60 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       } finally {
         clearTimeout(watchdog);
       }
-      if (stopped) return;
+      if (!running || disposed) return;
       setStatus('reconnecting');
-      retryTimer = setTimeout(connect, retryDelay);
+      retryTimer = setTimeout(() => running && !disposed && void connect(), retryDelay);
       retryDelay = Math.min(retryDelay * 2, MAX_RETRY_MS);
     }
 
-    setStatus('connecting');
-    void connect();
-    return () => {
-      stopped = true;
+    const start = () => {
+      if (running || disposed) return;
+      running = true;
+      retryDelay = MIN_RETRY_MS;
+      setStatus('connecting');
+      void connect();
+    };
+    const stop = () => {
+      running = false;
       clearTimeout(retryTimer);
       controller?.abort();
+    };
+
+    /*
+     * Browsers allow only 6 connections per host over HTTP/1.1, and every open event stream holds one. Streams
+     * must therefore not outlive their usefulness: background tabs pause theirs (reconnecting and reloading
+     * data when shown again), and a page being left closes its stream even if the browser keeps the page in
+     * its back/forward cache. Otherwise a few tabs or page loads would leave the app unable to make requests.
+     */
+    const onVisibilityChange = () => {
+      clearTimeout(hiddenTimer);
+      if (document.hidden) {
+        hiddenTimer = setTimeout(() => {
+          stop();
+          setStatus('paused');
+        }, HIDDEN_GRACE_MS);
+      } else {
+        start();
+      }
+    };
+    const onPageHide = () => stop();
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted && !document.hidden) start();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('pagehide', onPageHide);
+    window.addEventListener('pageshow', onPageShow);
+
+    if (document.hidden) setStatus('paused');
+    else start();
+
+    return () => {
+      disposed = true;
+      stop();
+      clearTimeout(hiddenTimer);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('pagehide', onPageHide);
+      window.removeEventListener('pageshow', onPageShow);
     };
   }, [userId, loading, refreshUser]);
 

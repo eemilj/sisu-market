@@ -1,6 +1,7 @@
 package fi.sisu.market.profile;
 
 import fi.sisu.market.common.ApiException;
+import fi.sisu.market.common.ErrorCode;
 import fi.sisu.market.prediction.PredictionDto;
 import fi.sisu.market.prediction.PredictionRepository;
 import fi.sisu.market.user.AdminPolicy;
@@ -59,7 +60,7 @@ public class ProfileResource {
     @Path("/leaderboard")
     public LeaderboardDto leaderboard(@QueryParam("limit") @DefaultValue("25") int limit) {
         if (limit < 1 || limit > MAX_LEADERBOARD) {
-            throw ApiException.badRequest("limit must be between 1 and " + MAX_LEADERBOARD);
+            throw ApiException.badRequest(ErrorCode.INVALID_LIMIT, "limit must be between 1 and " + MAX_LEADERBOARD);
         }
         List<User> top = users.topByBalance(limit);
         List<LeaderboardDto.Entry> entries = new java.util.ArrayList<>(top.size());
@@ -82,6 +83,6 @@ public class ProfileResource {
     }
 
     private User findUser(String username) {
-        return users.findByUsername(username).orElseThrow(() -> ApiException.notFound("User not found"));
+        return users.findByUsername(username).orElseThrow(() -> ApiException.notFound(ErrorCode.USER_NOT_FOUND, "User not found"));
     }
 }

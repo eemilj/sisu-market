@@ -35,12 +35,22 @@ export default function LeaderboardPage() {
     };
   }, [reload, user?.id]);
 
+  const rankCounts = new Map<number, number>();
+  board?.entries.forEach((e) => rankCounts.set(e.rank, (rankCounts.get(e.rank) ?? 0) + 1));
+
+  /** 🥇🥈🥉 for an unshared top-3 rank; shared ranks show "=1." so twenty players aren't all "gold". */
+  const rankLabel = (e: LeaderboardEntry) => {
+    const shared = (rankCounts.get(e.rank) ?? 1) > 1;
+    if (!shared && e.rank <= 3) return ['🥇', '🥈', '🥉'][e.rank - 1];
+    return `${shared ? '=' : ''}${e.rank}.`;
+  };
+
   const row = (e: LeaderboardEntry, extraClass = '') => {
     const mine = user?.username === e.username;
     return (
       <tr key={e.username} className={`${mine ? 'is-me' : ''} ${extraClass}`}>
-        <td className="lb-rank">{e.rank <= 3 ? ['🥇', '🥈', '🥉'][e.rank - 1] : `#${e.rank}`}</td>
-        <td><Link to={`/users/${encodeURIComponent(e.username)}`}>{e.username}</Link>{mine && <span className="muted"> (you)</span>}</td>
+        <td className="lb-rank" title={(rankCounts.get(e.rank) ?? 1) > 1 ? 'Jaettu sijoitus' : undefined}>{rankLabel(e)}</td>
+        <td><Link to={`/users/${encodeURIComponent(e.username)}`}>{e.username}</Link>{mine && <span className="muted"> (sinä)</span>}</td>
         <td className="lb-balance">{formatSisu(e.balance)}</td>
       </tr>
     );
@@ -48,17 +58,17 @@ export default function LeaderboardPage() {
 
   return (
     <div className="leaderboard">
-      <h1>Leaderboard</h1>
-      <p className="muted">Ranked by current Sisu balance. Equal balances share a rank.</p>
+      <h1>Tulostaulu</h1>
+      <p className="muted">Järjestys nykyisen Sisu-saldon mukaan. Saman saldon pelaajat jakavat sijoituksen (merkitty =).</p>
       {error && <p className="alert">{error}</p>}
       {!board ? (
-        !error && <p className="muted">Loading…</p>
+        !error && <p className="muted">Ladataan…</p>
       ) : board.entries.length === 0 ? (
-        <p className="muted">No players yet.</p>
+        <p className="muted">Ei vielä pelaajia.</p>
       ) : (
         <table className="lb-table">
           <thead>
-            <tr><th scope="col">Rank</th><th scope="col">Player</th><th scope="col" className="lb-balance">Balance</th></tr>
+            <tr><th scope="col">Sija</th><th scope="col">Pelaaja</th><th scope="col" className="lb-balance">Saldo</th></tr>
           </thead>
           <tbody>
             {board.entries.map((e) => row(e))}

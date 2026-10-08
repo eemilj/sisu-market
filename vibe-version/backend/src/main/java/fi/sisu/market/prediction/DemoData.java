@@ -12,57 +12,71 @@ import java.util.List;
  */
 final class DemoData {
 
+    /**
+     * @param legacyQuestion the English question earlier versions seeded, used to translate existing databases
+     */
+    record Seed(String legacyQuestion, String question, String description, String resolutionCriteria,
+                Category category, String closesAt, String openingYesProbability) {
+    }
+
+    static final List<Seed> SEEDS = List.of(
+            new Seed("Will Helsinki get its first snow cover before 15 November 2026?",
+                    "Saako Helsinki ensimmäisen lumipeitteensä ennen 15.11.2026?",
+                    "Pysyvä lumi on tullut pääkaupunkiin viime syksyinä yhä myöhemmin.",
+                    "KYLLÄ, jos Ilmatieteen laitos raportoi lumipeitteen Helsingin Kaisaniemessä ennen 15.11.2026.",
+                    Category.WEATHER, "2026-11-15T00:00:00Z", "0.42"),
+            new Seed("Will Lake Kallavesi freeze over near Kuopio before New Year?",
+                    "Jäätyykö Kallavesi Kuopion edustalla ennen uuttavuotta?",
+                    "Kallaveden jääpeite ratkaisee, milloin talven jäätiet ja luistelureitit voidaan avata.",
+                    "KYLLÄ, jos Suomen ympäristökeskuksen jäähavainnot ilmoittavat Kallaveden jäätyneen Kuopion havaintopaikalla ennen 1.1.2027.",
+                    Category.WEATHER, "2027-01-01T00:00:00Z", "0.31"),
+            new Seed("Will Finland win gold at the 2027 IIHF Ice Hockey World Championship?",
+                    "Voittaako Suomi kultaa jääkiekon MM-kisoissa 2027?",
+                    "Pystyvätkö Leijonat voittamaan miesten maailmanmestaruuden jälleen?",
+                    "KYLLÄ, jos Suomi voittaa miesten MM-kisojen 2027 loppuottelun. Mikä tahansa muu tulos ratkeaa EI.",
+                    Category.SPORTS, "2027-05-01T00:00:00Z", "0.26"),
+            new Seed("Will a Finnish player score 40+ goals in the 2026-27 NHL regular season?",
+                    "Tekeekö joku suomalaispelaaja vähintään 40 maalia NHL:n runkosarjassa 2026–27?",
+                    "Useat suomalaishyökkääjät ovat viime kausina olleet lähellä 40 maalin rajaa.",
+                    "KYLLÄ, jos kuka tahansa Suomessa syntynyt tai Suomen kansalaisuuden omaava pelaaja tekee runkosarjassa vähintään 40 maalia. Pudotuspelejä ei lasketa.",
+                    Category.SPORTS, "2027-04-20T00:00:00Z", "0.45"),
+            new Seed("Will voter turnout exceed 70% in the April 2027 Finnish parliamentary election?",
+                    "Nouseeko äänestysaktiivisuus yli 70 prosentin huhtikuun 2027 eduskuntavaaleissa?",
+                    "Suomessa asuvien Suomen kansalaisten äänestysaktiivisuus oli 72 % vuonna 2023.",
+                    "Ratkeaa oikeusministeriön ilmoittaman Suomessa asuvien Suomen kansalaisten virallisen äänestysaktiivisuuden mukaan. KYLLÄ, jos se on yli 70,0 %.",
+                    Category.POLITICS, "2027-04-18T00:00:00Z", "0.54"),
+            new Seed("Will Finland's unemployment rate (trend) drop below 9% in any month of H1 2027?",
+                    "Laskeeko Suomen työttömyysasteen trendi alle 9 prosentin jonakin kuukautena tammi–kesäkuussa 2027?",
+                    "Työttömyys on pysynyt korkeana talouden toipuessa hitaasti.",
+                    "KYLLÄ, jos Tilastokeskuksen 15–74-vuotiaiden työttömyysasteen trendi on alle 9,0 % jonakin kuukautena tammi–kesäkuussa 2027.",
+                    Category.ECONOMY, "2027-06-30T00:00:00Z", "0.35"),
+            new Seed("Will the ECB deposit facility rate be 2.00% or lower on 31 March 2027?",
+                    "Onko EKP:n talletuskorko enintään 2,00 % 31.3.2027?",
+                    "Euroalueen korot vaikuttavat suomalaisten asuntolainojen hintaan, koska useimmat niistä on sidottu euriboriin.",
+                    "KYLLÄ, jos 31.3.2027 voimassa oleva EKP:n talletuskorko on enintään 2,00 %.",
+                    Category.ECONOMY, "2027-03-31T00:00:00Z", "0.61"),
+            new Seed("Will Finland finish in the top 10 at Eurovision 2027?",
+                    "Sijoittuuko Suomi Euroviisujen 2027 kymmenen parhaan joukkoon?",
+                    "Suomen sijoitukset ovat vaihdelleet voitosta viimeiseen sijaan.",
+                    "Ratkeaa finaalin lopullisten pisteiden mukaan. Jos Suomi ei pääse finaaliin, ennuste ratkeaa EI.",
+                    Category.CULTURE, "2027-05-15T00:00:00Z", "0.48"));
+
     private DemoData() {
     }
 
     static List<Prediction> predictions(long liquidity) {
-        return List.of(
-                p(liquidity, "Will Helsinki get its first snow cover before 15 November 2026?",
-                        "The first lasting snow in the capital has arrived later in recent autumns.",
-                        "YES if the Finnish Meteorological Institute reports snow cover at Helsinki Kaisaniemi before 15.11.2026.",
-                        Category.WEATHER, "2026-11-15T00:00:00Z", "0.42"),
-                p(liquidity, "Will Lake Kallavesi freeze over near Kuopio before New Year?",
-                        "Ice cover on Kallavesi decides when the winter ice roads and skating tracks can open.",
-                        "YES if SYKE ice observations report Kallavesi frozen at the Kuopio station before 1.1.2027.",
-                        Category.WEATHER, "2027-01-01T00:00:00Z", "0.31"),
-                p(liquidity, "Will Finland win gold at the 2027 IIHF Ice Hockey World Championship?",
-                        "Can Leijonat take the men's world title again?",
-                        "YES if Finland wins the final of the 2027 men's World Championship. Any other result is NO.",
-                        Category.SPORTS, "2027-05-01T00:00:00Z", "0.26"),
-                p(liquidity, "Will a Finnish player score 40+ goals in the 2026-27 NHL regular season?",
-                        "Several Finnish forwards have come close to the 40-goal mark in recent seasons.",
-                        "YES if any Finnish-born or Finnish-national player scores 40 or more regular-season goals. Playoffs don't count.",
-                        Category.SPORTS, "2027-04-20T00:00:00Z", "0.45"),
-                p(liquidity, "Will voter turnout exceed 70% in the April 2027 Finnish parliamentary election?",
-                        "Turnout among citizens resident in Finland was 72% in 2023.",
-                        "Resolves on the official turnout for Finnish citizens resident in Finland, as reported by the Ministry of Justice. YES if strictly above 70.0%.",
-                        Category.POLITICS, "2027-04-18T00:00:00Z", "0.54"),
-                p(liquidity, "Will Finland's unemployment rate (trend) drop below 9% in any month of H1 2027?",
-                        "Unemployment has stayed high as the economy recovers slowly.",
-                        "YES if Statistics Finland's trend unemployment rate for persons aged 15-74 is below 9.0% for any month from January to June 2027.",
-                        Category.ECONOMY, "2027-06-30T00:00:00Z", "0.35"),
-                p(liquidity, "Will the ECB deposit facility rate be 2.00% or lower on 31 March 2027?",
-                        "Euro-area rates drive Finnish mortgage costs, since most of them track Euribor.",
-                        "YES if the ECB deposit facility rate in effect on 31.3.2027 is 2.00% or lower.",
-                        Category.ECONOMY, "2027-03-31T00:00:00Z", "0.61"),
-                p(liquidity, "Will Finland finish in the top 10 at Eurovision 2027?",
-                        "Finland's results have ranged from winning to last place.",
-                        "Resolves on the final scoreboard of the Grand Final. Failing to qualify for the final resolves NO.",
-                        Category.CULTURE, "2027-05-15T00:00:00Z", "0.48"));
-    }
-
-    private static Prediction p(long liquidity, String question, String description, String resolutionCriteria,
-                                Category category, String closesAt, String openingYesProbability) {
-        Prediction p = new Prediction();
-        p.question = question;
-        p.description = description;
-        p.resolutionCriteria = resolutionCriteria;
-        p.category = category;
-        p.closesAt = Instant.parse(closesAt);
-        p.status = PredictionStatus.OPEN;
-        p.updatePool(Cpmm.initialPool(liquidity, new BigDecimal(openingYesProbability)));
-        p.totalWagered = 0;
-        p.createdAt = Instant.now();
-        return p;
+        return SEEDS.stream().map(s -> {
+            Prediction p = new Prediction();
+            p.question = s.question();
+            p.description = s.description();
+            p.resolutionCriteria = s.resolutionCriteria();
+            p.category = s.category();
+            p.closesAt = Instant.parse(s.closesAt());
+            p.status = PredictionStatus.OPEN;
+            p.updatePool(Cpmm.initialPool(liquidity, new BigDecimal(s.openingYesProbability())));
+            p.totalWagered = 0;
+            p.createdAt = Instant.now();
+            return p;
+        }).toList();
     }
 }

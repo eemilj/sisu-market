@@ -100,4 +100,88 @@ class CpmmTest {
         assertTrue(noPayouts <= stakes + subsidy, "NO payouts " + noPayouts + " vs " + (stakes + subsidy));
         assertTrue(pool.yesShares().multiply(pool.noShares()).compareTo(k0) >= 0);
     }
+
+    // ---- edge cases ----
+
+    @Test
+    void rejectsInvalidInputs() {
+        Cpmm.Pool pool = Cpmm.initialPool(L, new BigDecimal("0.5"));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () -> Cpmm.buy(pool, Outcome.YES, 0));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () -> Cpmm.buy(pool, Outcome.NO, -10));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () -> Cpmm.initialPool(0, new BigDecimal("0.5")));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> new Cpmm.Pool(BigDecimal.ZERO, BigDecimal.ONE));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> new Cpmm.Pool(BigDecimal.ONE, new BigDecimal("-1")));
+    }
+
+    @Test
+    void quotesAreDeterministic() {
+        Cpmm.Pool pool = Cpmm.initialPool(L, new BigDecimal("0.37"));
+        assertEquals(Cpmm.buy(pool, Outcome.NO, 123), Cpmm.buy(pool, Outcome.NO, 123));
+    }
+
+    @Test
+    void smallestWagerStillPaysAtLeastItsStake() {
+        for (String q : new String[] {"0.02", "0.5", "0.98"}) {
+            Cpmm.Pool pool = Cpmm.initialPool(L, new BigDecimal(q));
+            assertTrue(Cpmm.buy(pool, Outcome.YES, 1).payoutIfWin() >= 1, "YES at " + q);
+            assertTrue(Cpmm.buy(pool, Outcome.NO, 1).payoutIfWin() >= 1, "NO at " + q);
+        }
+    }
+
+    @Test
+    void payoutIsTheFloorOfShares() {
+        Cpmm.Trade t = Cpmm.buy(Cpmm.initialPool(L, new BigDecimal("0.5")), Outcome.YES, 100);
+        assertEquals(t.shares().setScale(0, java.math.RoundingMode.DOWN).longValueExact(), t.payoutIfWin());
+        assertTrue(t.shares().scale() <= Cpmm.SHARE_SCALE);
+    }
+
+    @Test
+    void averagePriceLiesBetweenTheOddsBeforeAndAfter() {
+        Cpmm.Pool pool = Cpmm.initialPool(L, new BigDecimal("0.3"));
+        Cpmm.Trade yes = Cpmm.buy(pool, Outcome.YES, 400);
+        assertTrue(yes.averagePrice() > pool.yesProbability());
+        assertTrue(yes.averagePrice() < yes.poolAfter().yesProbability());
+        Cpmm.Trade no = Cpmm.buy(pool, Outcome.NO, 400);
+        assertTrue(no.averagePrice() > 1 - pool.yesProbability());
+        assertTrue(no.averagePrice() < 1 - no.poolAfter().yesProbability());
+    }
+
+    /** Splitting a wager into pieces must not earn more than placing it at once (no free money by splitting). */
+    @Test
+    void splittingAWagerDoesNotBeatPlacingItOnce() {
+        Cpmm.Pool pool = Cpmm.initialPool(L, new BigDecimal("0.4"));
+        BigDecimal once = Cpmm.buy(pool, Outcome.YES, 500).shares();
+        BigDecimal split = BigDecimal.ZERO;
+        Cpmm.Pool p = pool;
+        for (int i = 0; i < 5; i++) {
+            Cpmm.Trade t = Cpmm.buy(p, Outcome.YES, 100);
+            split = split.add(t.shares());
+            p = t.poolAfter();
+        }
+        assertTrue(split.compareTo(once) <= 0, "split " + split + " vs once " + once);
+        assertTrue(once.subtract(split).doubleValue() < 0.0001, "only rounding dust apart");
+    }
+
+    /** Buying YES then the same amount of NO can't return more than was staked, whichever side wins. */
+    @Test
+    void roundTripCannotGuaranteeProfit() {
+        Cpmm.Pool pool = Cpmm.initialPool(L, new BigDecimal("0.5"));
+        Cpmm.Trade yes = Cpmm.buy(pool, Outcome.YES, 300);
+        Cpmm.Trade no = Cpmm.buy(yes.poolAfter(), Outcome.NO, 300);
+        long staked = 600;
+        assertTrue(Math.min(yes.payoutIfWin(), no.payoutIfWin()) <= staked,
+                "a hedged pair must not pay out more than 600 in both outcomes");
+    }
+
+    @Test
+    void enormousWagerStaysWithinBounds() {
+        Cpmm.Pool pool = Cpmm.initialPool(L, new BigDecimal("0.5"));
+        Cpmm.Trade t = Cpmm.buy(pool, Outcome.NO, 1_000_000_000_000L);
+        assertTrue(t.payoutIfWin() >= 1_000_000_000_000L);
+        assertTrue(t.payoutIfWin() <= 1_000_000_000_000L + L, "can never exceed stake + pool depth");
+        double p = t.poolAfter().yesProbability();
+        assertTrue(p > 0 && p < 1e-6, "NO nearly certain, but never exactly");
+    }
 }

@@ -1,6 +1,7 @@
 package fi.sisu.market.prediction;
 
 import fi.sisu.market.common.ApiException;
+import fi.sisu.market.common.ErrorCode;
 import fi.sisu.market.user.CurrentUser;
 import io.quarkus.security.Authenticated;
 import jakarta.inject.Inject;
@@ -49,11 +50,11 @@ public class PredictionResource {
     @Path("/{id}")
     public PredictionDto get(@PathParam("id") String id) {
         if (!ObjectId.isValid(id)) {
-            throw ApiException.notFound("Prediction not found");
+            throw ApiException.notFound(ErrorCode.PREDICTION_NOT_FOUND, "Prediction not found");
         }
         return predictions.findByIdOptional(new ObjectId(id))
                 .map(p -> PredictionDto.from(p, Instant.now()))
-                .orElseThrow(() -> ApiException.notFound("Prediction not found"));
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.PREDICTION_NOT_FOUND, "Prediction not found"));
     }
 
     @POST
@@ -72,7 +73,7 @@ public class PredictionResource {
         try {
             return Enum.valueOf(type, value.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
-            throw ApiException.badRequest("Unknown " + type.getSimpleName() + ": " + value);
+            throw ApiException.badRequest(ErrorCode.INVALID_FILTER, "Unknown " + type.getSimpleName() + ": " + value);
         }
     }
 }

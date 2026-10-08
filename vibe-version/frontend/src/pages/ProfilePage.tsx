@@ -10,7 +10,7 @@ import TransactionHistory from '../components/TransactionHistory';
 import WagerHistory from '../components/WagerHistory';
 
 type Tab = 'wagers' | 'transactions' | 'predictions';
-const tabLabels: Record<Tab, string> = { wagers: 'Wagers', transactions: 'Transactions', predictions: 'Predictions created' };
+const tabLabels: Record<Tab, string> = { wagers: 'Panokset', transactions: 'Tapahtumat', predictions: 'Luodut ennusteet' };
 
 export default function ProfilePage() {
   const { username = '' } = useParams();
@@ -53,24 +53,24 @@ export default function ProfilePage() {
   }, [username, reload]);
 
   if (error) return <div className="profile"><p className="alert">{error}</p></div>;
-  if (!profile) return <div className="profile"><p className="muted">Loading profile…</p></div>;
+  if (!profile) return <div className="profile"><p className="muted">Ladataan profiilia…</p></div>;
 
   // Your own balance comes from the live auth state so it never lags behind the header.
   const balance = isMe && user ? user.balance : profile.balance;
 
   return (
     <div className="profile">
-      <section className="balance-card profile-card" aria-label="Profile summary">
+      <section className="balance-card profile-card" aria-label="Profiilin yhteenveto">
         <div className="profile-head">
           <h1>{profile.username}</h1>
-          {profile.admin && <span className="tag tag-admin">Admin</span>}
+          {profile.admin && <span className="tag tag-admin">Ylläpitäjä</span>}
         </div>
-        <span className="balance-card-label">{isMe ? 'Your balance' : 'Balance'}</span>
+        <span className="balance-card-label">{isMe ? 'Saldosi' : 'Saldo'}</span>
         <span className="balance-card-amount">{formatSisu(balance)}</span>
         <dl className="profile-stats">
-          <div><dt>Rank</dt><dd><Link to="/leaderboard">#{profile.rank}</Link></dd></div>
-          <div><dt>Predictions created</dt><dd>{profile.predictionsCreated}</dd></div>
-          <div><dt>Joined</dt><dd>{formatDate(profile.joinedAt)}</dd></div>
+          <div><dt>Sijoitus</dt><dd><Link to="/leaderboard">{profile.rank}.</Link></dd></div>
+          <div><dt>Luodut ennusteet</dt><dd>{profile.predictionsCreated}</dd></div>
+          <div><dt>Liittynyt</dt><dd>{formatDate(profile.joinedAt)}</dd></div>
         </dl>
       </section>
 
@@ -89,8 +89,8 @@ export default function ProfilePage() {
       {tab === 'wagers' && <WagerHistory />}
       {tab === 'transactions' && <TransactionHistory />}
       {tab === 'predictions' && (
-        created === null ? <p className="muted">Loading…</p>
-          : created.length === 0 ? <p className="muted">{isMe ? "You haven't" : `${profile.username} hasn't`} created any predictions yet.</p>
+        created === null ? <p className="muted">Ladataan…</p>
+          : created.length === 0 ? <p className="muted">{isMe ? 'Et ole vielä luonut ennusteita.' : `${profile.username} ei ole vielä luonut ennusteita.`}</p>
           : (
             <div className="grid">
               {created.map((p) => (

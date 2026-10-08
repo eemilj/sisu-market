@@ -11,28 +11,28 @@ export default function Header() {
   return (
     <header className="header">
       <div className="container header-inner">
-        <Link to="/" className="brand">
+        <Link to="/" className="brand" aria-label="Sisu Market – etusivu">
           <span className="brand-mark">S</span> <span className="brand-text">Sisu Market</span>
         </Link>
         <nav className="nav">
-          <Link to="/leaderboard" className="nav-link" aria-label="Leaderboard">
-            <span aria-hidden="true" className="show-sm">🏆</span><span className="hide-sm">Leaderboard</span>
+          <Link to="/leaderboard" className="nav-link" aria-label="Tulostaulu">
+            <span aria-hidden="true" className="show-sm">🏆</span><span className="hide-sm">Tulostaulu</span>
           </Link>
           <span
             className={`live-dot live-${status}`}
             role="status"
-            title={status === 'live' ? 'Live: updates appear automatically' : 'Reconnecting to live updates…'}
+            title={status === 'live' ? 'Reaaliaikainen: muutokset päivittyvät automaattisesti' : 'Yhteys katkesi – yhdistetään uudelleen…'}
           >
-            <span className="live-label">{status === 'live' ? 'Live' : 'Reconnecting…'}</span>
+            <span className="live-label">{status === 'live' ? 'Ajantasainen' : 'Yhdistetään…'}</span>
           </span>
           {loading ? null : user ? (
             <>
-              <Link to="/predictions/new" className="btn btn-primary" aria-label="New prediction">
-                +<span className="hide-sm">&nbsp;New prediction</span>
+              <Link to="/predictions/new" className="btn btn-primary" aria-label="Uusi ennuste">
+                +<span className="hide-sm">&nbsp;Uusi ennuste</span>
               </Link>
               <Link to={`/users/${encodeURIComponent(user.username)}?tab=transactions`} className="balance"
-                    title="Your Sisu balance – view transaction history">
-                <span className="balance-label">Balance</span>
+                    title="Sisu-saldosi – näytä tapahtumat">
+                <span className="balance-label">Saldo</span>
                 <span className="balance-amount">{formatSisu(user.balance)}</span>
               </Link>
               <Link to={`/users/${encodeURIComponent(user.username)}`} className="username">{user.username}</Link>
@@ -43,13 +43,13 @@ export default function Header() {
                   navigate('/');
                 }}
               >
-                Log out
+                <span className="hide-sm">Kirjaudu ulos</span><span className="show-sm">Ulos</span>
               </button>
             </>
           ) : (
             <>
-              <Link to="/login" className="btn btn-ghost">Log in</Link>
-              <Link to="/register" className="btn btn-primary">Sign up</Link>
+              <Link to="/login" className="btn btn-ghost">Kirjaudu</Link>
+              <Link to="/register" className="btn btn-primary">Luo tili</Link>
             </>
           )}
         </nav>

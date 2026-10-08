@@ -1,3 +1,5 @@
+import { describeError, fieldErrorMessage, type ErrorBody, type FieldError } from './errors';
+
 export type Category = 'POLITICS' | 'SPORTS' | 'ECONOMY' | 'WEATHER' | 'CULTURE';
 export type PredictionStatus = 'OPEN' | 'CLOSED' | 'RESOLVED';
 export type Outcome = 'YES' | 'NO';
@@ -51,7 +53,10 @@ export interface Transaction {
   /** Signed: positive credits, negative debits. */
   amount: number;
   balanceAfter: number;
+  /** English, for developers; the UI labels entries by `type`. */
   description: string;
+  /** Question of the related prediction, if any. */
+  predictionQuestion: string | null;
   predictionId: string | null;
   createdAt: string;
 }
@@ -157,9 +162,25 @@ export interface NewPrediction {
   closesAt: string;
 }
 
+/**
+ * Any failed API call. `message` is ready to show to the user (Finnish, says what to do); `code` and
+ * `fieldErrors` let forms point at the exact field.
+ */
 export class ApiError extends Error {
-  constructor(public readonly status: number, message: string) {
+  constructor(
+    public readonly status: number,
+    message: string,
+    public readonly code: string | null = null,
+    public readonly fieldErrors: FieldError[] = [],
+  ) {
     super(message);
+  }
+
+  /** Finnish message per field name, for showing next to form inputs. */
+  fieldMessages(): Record<string, string> {
+    const out: Record<string, string> = {};
+    for (const f of this.fieldErrors) out[f.field] ??= fieldErrorMessage(f);
+    return out;
   }
 }
 
@@ -181,18 +202,17 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   try {
     response = await fetch(path, { ...init, headers });
   } catch {
-    throw new ApiError(0, 'Cannot reach the server. Is the backend running?');
+    throw new ApiError(0, describeError(0, null));
   }
 
   if (!response.ok) {
-    let message = response.statusText || `Request failed (${response.status})`;
+    let body: ErrorBody | null = null;
     try {
-      const body = await response.json();
-      if (body?.message) message = body.message;
+      body = await response.json();
     } catch {
-      // Non-JSON error body (e.g. 401 from the JWT layer); keep the status text.
+      // Non-JSON error body (e.g. 401 from the JWT layer); fall back to the status.
     }
-    throw new ApiError(response.status, message);
+    throw new ApiError(response.status, describeError(response.status, body), body?.code ?? null, body?.fieldErrors ?? []);
   }
   return response.json() as Promise<T>;
 }

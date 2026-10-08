@@ -1,15 +1,8 @@
 import { useEffect, useState } from 'react';
-import { api, type WagerHistoryItem, type WagerStatus } from '../api';
+import { api, type WagerHistoryItem } from '../api';
 import { useLiveEvents } from '../live';
-import { formatDateTime, formatProbability, formatSisu } from '../format';
+import { formatDateTime, formatProbability, formatSisu, outcomeLabels, wagerStatusLabels } from '../format';
 import { useDebounced } from '../useDebounced';
-
-const statusLabels: Record<WagerStatus, string> = {
-  OPEN: 'Open',
-  WON: 'Won',
-  LOST: 'Lost',
-  REFUNDED: 'Refunded',
-};
 
 /** The logged-in user's wagers with their outcome, newest first. Reloads when one of them settles. */
 export default function WagerHistory() {
@@ -51,15 +44,15 @@ export default function WagerHistory() {
       setItems((prev) => [...(prev ?? []), ...page.items]);
       setNextCursor(page.nextCursor);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not load more');
+      setError(err instanceof Error ? err.message : 'Vanhempia panoksia ei voitu ladata. Yritä uudelleen.');
     } finally {
       setLoadingMore(false);
     }
   }
 
   if (error) return <p className="alert">{error}</p>;
-  if (items === null) return <p className="muted">Loading wagers…</p>;
-  if (items.length === 0) return <p className="muted">No wagers yet. Pick a prediction and back YES or NO.</p>;
+  if (items === null) return <p className="muted">Ladataan panoksia…</p>;
+  if (items.length === 0) return <p className="muted">Ei vielä panoksia. Valitse ennuste etusivulta ja panosta KYLLÄ tai EI.</p>;
 
   return (
     <>
@@ -69,20 +62,20 @@ export default function WagerHistory() {
             <div className="ledger-main">
               <span className="ledger-desc">{question}</span>
               <span className="ledger-meta">
-                <span className={`tag side-${w.side.toLowerCase()}`}>{w.side}</span>
+                <span className={`tag side-${w.side.toLowerCase()}`}>{outcomeLabels[w.side]}</span>
                 <span className={`tag wager-${w.status.toLowerCase()}`}>
-                  {w.status === 'OPEN' && predictionStatus === 'CLOSED' ? 'Awaiting result' : statusLabels[w.status]}
+                  {w.status === 'OPEN' && predictionStatus === 'CLOSED' ? 'Odottaa ratkaisua' : wagerStatusLabels[w.status]}
                 </span>
-                {formatDateTime(w.createdAt)} · avg price {formatProbability(w.averagePrice)}
+                {formatDateTime(w.createdAt)} · keskihinta {formatProbability(w.averagePrice)}
               </span>
             </div>
             <div className="ledger-amounts">
-              <span>{formatSisu(w.amount)} staked</span>
+              <span>Panos {formatSisu(w.amount)}</span>
               <span className="ledger-after">
-                {w.status === 'WON' && <span className="amount-credit">Won {formatSisu(w.payout ?? 0)}</span>}
-                {w.status === 'LOST' && <span className="amount-debit">Lost stake</span>}
-                {w.status === 'REFUNDED' && 'Stake refunded'}
-                {w.status === 'OPEN' && `Pays ${formatSisu(w.payoutIfWin)} if ${w.side}`}
+                {w.status === 'WON' && <span className="amount-credit">Voitit {formatSisu(w.payout ?? 0)}</span>}
+                {w.status === 'LOST' && <span className="amount-debit">Panos hävittiin</span>}
+                {w.status === 'REFUNDED' && 'Panos palautettiin'}
+                {w.status === 'OPEN' && `Voitto ${formatSisu(w.payoutIfWin)}, jos ${outcomeLabels[w.side]}`}
               </span>
             </div>
           </li>
@@ -90,7 +83,7 @@ export default function WagerHistory() {
       </ul>
       {nextCursor && (
         <button className="btn btn-ghost btn-block" onClick={loadMore} disabled={loadingMore}>
-          {loadingMore ? 'Loading…' : 'Load older wagers'}
+          {loadingMore ? 'Ladataan…' : 'Näytä vanhemmat panokset'}
         </button>
       )}
     </>

@@ -67,7 +67,8 @@ h1, h2, h3 { line-height: 1.25; }
 .card-top { display: flex; gap: 6px; }
 .card-question { margin: 0; font-size: 1.05rem; }
 .card-description { margin: 0; color: var(--muted); font-size: .9rem; flex: 1; }
-.card-footer { display: flex; justify-content: space-between; color: var(--muted); font-size: .85rem; border-top: 1px solid var(--border); padding-top: 10px; }
+.card-footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; color: var(--muted); font-size: .85rem; border-top: 1px solid var(--border); padding-top: 10px; }
+.card-footer time { white-space: nowrap; }
 
 .tag { font-size: .75rem; font-weight: 600; padding: 3px 8px; border-radius: 6px; text-transform: uppercase; letter-spacing: .03em; background: #eef1f6; color: var(--muted); }
 .tag-politics { background: #e8eef8; color: var(--blue); }
@@ -100,7 +101,8 @@ h1, h2, h3 { line-height: 1.25; }
 .wager-quick .chip { padding: 4px 12px; font-size: .85rem; }
 .wager-hint { margin: 0; font-size: .85rem; color: var(--muted); }
 .wager-hint.is-error { color: var(--no); }
-.wager-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.wager-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+.wager-actions .btn[type="submit"] { flex: 1 1 auto; }
 .wager-confirmation { margin: 0; font-size: .9rem; color: #145c37; background: #e6f4ec; border-radius: 8px; padding: 8px 10px; }
 .quote { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; margin: 0; padding: 10px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
 .quote div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
@@ -170,6 +172,7 @@ h1, h2, h3 { line-height: 1.25; }
 .resolve { display: flex; flex-direction: column; gap: 8px; background: var(--bg); border-radius: 10px; padding: 12px; }
 .resolve-title { margin: 0; font-weight: 600; font-size: .9rem; }
 .resolve-confirm p { margin: 0 0 8px; font-size: .9rem; }
+.resolved-summary { display: block; margin-top: 4px; font-weight: 600; }
 .resolved-banner { margin: 0; padding: 8px 10px; border-radius: 8px; font-size: .9rem; }
 .resolved-yes { background: #e6f4ec; color: #145c37; }
 .resolved-no { background: #fbeceb; color: #8c2318; }
@@ -207,10 +210,52 @@ h1, h2, h3 { line-height: 1.25; }
 .lb-table tr.is-me td { background: #eef3fb; }
 .lb-gap td { text-align: center; color: var(--muted); padding: 4px; }
 
+/* Form fields with inline errors */
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field label { font-weight: 600; font-size: .9rem; }
+.field small { color: var(--muted); font-size: .85rem; }
+.field-error { margin: 0; color: var(--no); font-size: .875rem; font-weight: 500; display: flex; gap: 6px; }
+.field-error::before { content: '!'; flex: none; display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--no); color: #fff; font-size: .75rem; font-weight: 700; margin-top: 1px; }
+.has-error input, .has-error textarea, .has-error select, .wager-amount input[aria-invalid] { border-color: var(--no); background: #fffafa; }
+.resolve-help { margin: -4px 0 0; font-size: .85rem; color: var(--muted); }
+.empty { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; color: var(--muted); padding: 8px 0 48px; }
+.empty p { margin: 0; }
+.alert p { margin: 0 0 8px; }
+.alert .btn { background: var(--surface); }
+
 .alert { background: #fdecea; color: #8c2318; border: 1px solid #f5c2bc; border-radius: 8px; padding: 10px 12px; margin: 0; }
+
+/* Touch-friendly sizes */
+@media (pointer: coarse) {
+  .btn { min-height: 44px; }
+  .chip { min-height: 40px; }
+  .tab { min-height: 38px; }
+}
 
 @media (max-width: 600px) {
   .username { display: none; }
+  /* 16px stops iOS from zooming into focused inputs. */
+  input, textarea, select { font-size: 16px !important; }
+  .hero { padding: 24px 0 16px; }
+  .filters { flex-direction: column; align-items: stretch; }
+  .chips { flex-wrap: nowrap; overflow-x: auto; margin: 0 -16px; padding: 0 16px 4px; scrollbar-width: none; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip { flex: none; }
+  .tabs, .profile-tabs { display: flex; justify-content: space-between; }
+  /* Four Finnish labels must fit in 358px: no extra padding, text may shrink rather than overflow. */
+  .tab { flex: 1 1 0; min-width: 0; padding: 6px 2px; font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tabs { width: 100%; }
+  .grid { grid-template-columns: 1fr; }
+  .card { padding: 16px; }
+  .auth-card, .form-card { padding: 20px; }
+  .auth-wrap, .form-wrap { padding: 20px 0; }
+  .form-actions { flex-direction: column-reverse; }
+  .form-actions .btn { width: 100%; }
+  .card-footer { flex-direction: column; gap: 4px; }
+  .ledger-row { flex-direction: column; align-items: stretch; }
+  .ledger-amounts { align-items: baseline; text-align: left; flex-direction: row; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; white-space: normal; }
+  .profile, .leaderboard, .wallet { padding: 20px 0 40px; }
+  .balance-card { padding: 20px; }
   .lb-table th, .lb-table td { padding: 10px; }
   .live-label { display: none; }
   .form-row { grid-template-columns: 1fr; }

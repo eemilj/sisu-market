@@ -1,6 +1,7 @@
 package fi.sisu.market.resolution;
 
 import fi.sisu.market.common.ApiException;
+import fi.sisu.market.common.ErrorCode;
 import fi.sisu.market.user.CurrentUser;
 import io.quarkus.security.Authenticated;
 import jakarta.inject.Inject;
@@ -31,7 +32,7 @@ public class ResolutionResource {
     public ResolutionResult resolve(@PathParam("predictionId") String predictionId,
                                     @NotNull(message = "Request body is required") @Valid ResolveRequest request) {
         if (!ObjectId.isValid(predictionId)) {
-            throw ApiException.notFound("Prediction not found");
+            throw ApiException.notFound(ErrorCode.PREDICTION_NOT_FOUND, "Prediction not found");
         }
         return service.resolve(new ObjectId(predictionId), request.outcome(), currentUser.require());
     }

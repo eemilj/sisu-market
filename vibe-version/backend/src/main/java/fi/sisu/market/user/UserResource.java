@@ -1,6 +1,7 @@
 package fi.sisu.market.user;
 
 import fi.sisu.market.common.ApiException;
+import fi.sisu.market.common.ErrorCode;
 import fi.sisu.market.prediction.Prediction;
 import fi.sisu.market.prediction.PredictionRepository;
 import fi.sisu.market.profile.WagerHistoryItem;
@@ -63,12 +64,12 @@ public class UserResource {
     public TransactionPage transactions(@QueryParam("before") String before,
                                         @QueryParam("limit") @DefaultValue("20") int limit) {
         if (limit < 1 || limit > MAX_PAGE_SIZE) {
-            throw ApiException.badRequest("limit must be between 1 and " + MAX_PAGE_SIZE);
+            throw ApiException.badRequest(ErrorCode.INVALID_LIMIT, "limit must be between 1 and " + MAX_PAGE_SIZE);
         }
         ObjectId cursor = null;
         if (before != null && !before.isBlank()) {
             if (!ObjectId.isValid(before)) {
-                throw ApiException.badRequest("Invalid cursor");
+                throw ApiException.badRequest(ErrorCode.INVALID_CURSOR, "Invalid cursor");
             }
             cursor = new ObjectId(before);
         }
@@ -79,7 +80,12 @@ public class UserResource {
         boolean hasMore = entries.size() > limit;
         List<LedgerEntry> page = hasMore ? entries.subList(0, limit) : entries;
         String next = hasMore ? page.getLast().id.toHexString() : null;
-        return new TransactionPage(page.stream().map(LedgerEntryDto::from).toList(), next);
+        Map<ObjectId, String> questions = predictions.byIds(page.stream()
+                        .map(e -> e.predictionId).filter(java.util.Objects::nonNull).distinct().toList())
+                .stream().collect(Collectors.toMap(p -> p.id, p -> p.question));
+        return new TransactionPage(page.stream()
+                .map(e -> LedgerEntryDto.from(e, e.predictionId == null ? null : questions.get(e.predictionId)))
+                .toList(), next);
     }
 
     /** The caller's own wagers, newest first. Private: other users' positions are not exposed. */
@@ -88,12 +94,12 @@ public class UserResource {
     public WagerHistoryPage myWagers(@QueryParam("before") String before,
                                      @QueryParam("limit") @DefaultValue("20") int limit) {
         if (limit < 1 || limit > MAX_PAGE_SIZE) {
-            throw ApiException.badRequest("limit must be between 1 and " + MAX_PAGE_SIZE);
+            throw ApiException.badRequest(ErrorCode.INVALID_LIMIT, "limit must be between 1 and " + MAX_PAGE_SIZE);
         }
         ObjectId cursor = null;
         if (before != null && !before.isBlank()) {
             if (!ObjectId.isValid(before)) {
-                throw ApiException.badRequest("Invalid cursor");
+                throw ApiException.badRequest(ErrorCode.INVALID_CURSOR, "Invalid cursor");
             }
             cursor = new ObjectId(before);
         }

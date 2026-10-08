@@ -8,10 +8,10 @@ import PredictionCard from '../components/PredictionCard';
 
 const categories: (Category | 'ALL')[] = ['ALL', 'POLITICS', 'SPORTS', 'ECONOMY', 'WEATHER', 'CULTURE'];
 const statuses: { value: PredictionStatus | 'ALL'; label: string }[] = [
-  { value: 'OPEN', label: 'Open' },
-  { value: 'CLOSED', label: 'Closed' },
-  { value: 'RESOLVED', label: 'Resolved' },
-  { value: 'ALL', label: 'All' },
+  { value: 'OPEN', label: 'Avoimet' },
+  { value: 'CLOSED', label: 'Suljetut' },
+  { value: 'RESOLVED', label: 'Ratkaistut' },
+  { value: 'ALL', label: 'Kaikki' },
 ];
 
 type Filters = { category: Category | 'ALL'; status: PredictionStatus | 'ALL' };
@@ -50,8 +50,11 @@ export default function PredictionsPage() {
       const p = event.data;
       setPredictions((list) => {
         if (!list) return list;
-        if (matches(p, { category, status })) return upsert(list, p);
-        return list.filter((x) => x.id !== p.id);
+        // Cards already on screen are updated in place even if they no longer match the filter (e.g. one
+        // closes while you look at it): removing them would yank content away mid-read or mid-click.
+        // The filter applies again on the next load or filter change.
+        if (list.some((x) => x.id === p.id) || matches(p, { category, status })) return upsert(list, p);
+        return list;
       });
     }
   });
@@ -88,13 +91,13 @@ export default function PredictionsPage() {
   return (
     <>
       <section className="hero">
-        <h1>Predict Finland's future. Risk nothing but your Sisu.</h1>
+        <h1>Ennusta Suomen tulevaisuutta. Panoksena vain Sisua.</h1>
         <p>
-          Trade on Finnish politics, sports, weather and more with virtual Sisu currency.
+          Veikkaa politiikkaa, urheilua, säätä ja muuta virtuaalisella Sisu-valuutalla.
           {!user && (
             <>
               {' '}
-              <Link to="/register">Sign up</Link> and get 1 000 Sisu to start.
+              <Link to="/register">Luo tili</Link> ja saat aluksi 1 000 Sisua.
             </>
           )}
         </p>
@@ -103,16 +106,16 @@ export default function PredictionsPage() {
       {justCreated && (
         <div className="notice" role="status">
           <span>
-            Your prediction <strong>“{justCreated.question}”</strong> is live.
+            Ennusteesi <strong>”{justCreated.question}”</strong> on nyt avoinna panostuksille.
           </span>
-          <button className="notice-close" onClick={() => setJustCreated(null)} aria-label="Dismiss">
+          <button className="notice-close" onClick={() => setJustCreated(null)} aria-label="Sulje ilmoitus">
             ×
           </button>
         </div>
       )}
 
       <div className="filters">
-        <div className="chips" role="group" aria-label="Category">
+        <div className="chips" role="group" aria-label="Aihealue">
           {categories.map((c) => (
             <button
               key={c}
@@ -120,11 +123,11 @@ export default function PredictionsPage() {
               onClick={() => setCategory(c)}
               aria-pressed={category === c}
             >
-              {c === 'ALL' ? 'All topics' : categoryLabels[c]}
+              {c === 'ALL' ? 'Kaikki aiheet' : categoryLabels[c]}
             </button>
           ))}
         </div>
-        <div className="tabs" role="group" aria-label="Status">
+        <div className="tabs" role="group" aria-label="Tila">
           {statuses.map((s) => (
             <button
               key={s.value}
@@ -139,11 +142,21 @@ export default function PredictionsPage() {
       </div>
 
       {error ? (
-        <p className="alert">{error}</p>
+        <div className="alert" role="alert">
+          <p>Ennusteiden lataaminen epäonnistui. {error}</p>
+          <button className="btn btn-ghost" onClick={() => setResync((n) => n + 1)}>Yritä uudelleen</button>
+        </div>
       ) : predictions === null ? (
-        <p className="muted">Loading predictions…</p>
+        <p className="muted">Ladataan ennusteita…</p>
       ) : predictions.length === 0 ? (
-        <p className="muted">No predictions match these filters.</p>
+        <div className="empty">
+          <p>Näillä suodattimilla ei löytynyt ennusteita.</p>
+          {(category !== 'ALL' || status !== 'ALL') && (
+            <button className="btn btn-ghost" onClick={() => { setCategory('ALL'); setStatus('ALL'); }}>
+              Näytä kaikki ennusteet
+            </button>
+          )}
+        </div>
       ) : (
         <div className="grid">
           {predictions.map((p) => (

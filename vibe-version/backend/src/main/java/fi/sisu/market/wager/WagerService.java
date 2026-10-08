@@ -5,6 +5,7 @@ import com.mongodb.MongoException;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Updates;
 import fi.sisu.market.common.ApiException;
+import fi.sisu.market.common.ErrorCode;
 import fi.sisu.market.live.EventHub;
 import fi.sisu.market.live.LiveEvent;
 import fi.sisu.market.prediction.Outcome;
@@ -50,7 +51,7 @@ public class WagerService {
     public QuoteDto quote(ObjectId predictionId, Outcome side, long amount) {
         requirePositive(amount);
         Prediction p = predictions.findByIdOptional(predictionId)
-                .orElseThrow(() -> ApiException.notFound("Prediction not found"));
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.PREDICTION_NOT_FOUND, "Prediction not found"));
         requireOpen(p, Instant.now());
         return QuoteDto.from(p.pool(), Cpmm.buy(p.pool(), side, amount));
     }
@@ -76,14 +77,17 @@ public class WagerService {
                 Instant now = Instant.now();
                 Prediction p = predictions.mongoCollection().find(session, Filters.eq("_id", predictionId)).first();
                 if (p == null) {
-                    throw ApiException.notFound("Prediction not found");
+                    throw ApiException.notFound(ErrorCode.PREDICTION_NOT_FOUND, "Prediction not found");
                 }
                 requireOpen(p, now);
 
                 Cpmm.Trade trade = Cpmm.buy(p.pool(), side, amount);
                 if (minPayout != null && trade.payoutIfWin() < minPayout) {
-                    throw ApiException.conflict("The odds have moved: this wager would now pay " + trade.payoutIfWin()
-                            + " Sisu if it wins, below the " + minPayout + " Sisu you were shown. Review and try again.");
+                    throw ApiException.conflict(ErrorCode.ODDS_MOVED, "The odds have moved: this wager would now pay "
+                                    + trade.payoutIfWin() + " Sisu if it wins, below the " + minPayout
+                                    + " Sisu you were shown. Review and try again.")
+                            .with("payoutIfWin", trade.payoutIfWin())
+                            .with("minPayout", minPayout);
                 }
 
                 // Compare-and-set on the pool we priced against; open/close is re-checked atomically too.
@@ -99,7 +103,7 @@ public class WagerService {
                         Updates.inc("totalWagered", amount),
                         Updates.inc("version", 1))).getMatchedCount();
                 if (matched == 0) {
-                    throw ApiException.conflict("The odds changed while placing your wager. Please try again.");
+                    throw ApiException.conflict(ErrorCode.ODDS_CHANGED_RETRY, "The odds changed while placing your wager. Please try again.");
                 }
 
                 LedgerEntry debit = wallet.apply(session, userId, -amount, TransactionType.WAGER,
@@ -141,7 +145,7 @@ public class WagerService {
 
     private Placement replay(Wager earlier, ObjectId predictionId, Outcome side, long amount) {
         if (!earlier.predictionId.equals(predictionId) || earlier.side != side || earlier.amount != amount) {
-            throw ApiException.conflict("This requestId was already used for a different wager");
+            throw ApiException.conflict(ErrorCode.REQUEST_ID_REUSED, "This requestId was already used for a different wager");
         }
         var user = users.findById(earlier.userId);
         Prediction p = predictions.findById(predictionId);
@@ -151,13 +155,13 @@ public class WagerService {
 
     private static void requirePositive(long amount) {
         if (amount <= 0) {
-            throw ApiException.badRequest("Amount must be greater than zero");
+            throw ApiException.badRequest(ErrorCode.AMOUNT_NOT_POSITIVE, "Amount must be greater than zero");
         }
     }
 
     private static void requireOpen(Prediction p, Instant now) {
         if (p.effectiveStatus(now) != PredictionStatus.OPEN) {
-            throw ApiException.conflict("This prediction is closed for wagering");
+            throw ApiException.conflict(ErrorCode.PREDICTION_CLOSED, "This prediction is closed for wagering");
         }
     }
 }

@@ -11,8 +11,11 @@ import com.mongodb.client.model.FindOneAndUpdateOptions;
 import com.mongodb.client.model.ReturnDocument;
 import com.mongodb.client.model.Updates;
 import fi.sisu.market.common.ApiException;
+import fi.sisu.market.common.ErrorCode;
 import fi.sisu.market.live.EventHub;
 import fi.sisu.market.live.LiveEvent;
+import fi.sisu.market.prediction.Prediction;
+import fi.sisu.market.prediction.PredictionRepository;
 import fi.sisu.market.user.User;
 import fi.sisu.market.user.UserRepository;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -58,6 +61,9 @@ public class WalletService {
     @Inject
     EventHub events;
 
+    @Inject
+    PredictionRepository predictions;
+
     /** Ledger entries written by each open transaction, announced only once it commits. */
     private final Map<ClientSession, List<LedgerEntry>> uncommitted = Collections.synchronizedMap(new IdentityHashMap<>());
 
@@ -85,7 +91,15 @@ public class WalletService {
 
     private void announce(LedgerEntry entry) {
         events.publish(LiveEvent.toUser(entry.userId, LiveEvent.WALLET_TRANSACTION,
-                new WalletEvent(LedgerEntryDto.from(entry), entry.balanceAfter, entry.balanceVersion)));
+                new WalletEvent(LedgerEntryDto.from(entry, questionOf(entry)), entry.balanceAfter, entry.balanceVersion)));
+    }
+
+    private String questionOf(LedgerEntry entry) {
+        if (entry.predictionId == null) {
+            return null;
+        }
+        Prediction p = predictions.findById(entry.predictionId);
+        return p == null ? null : p.question;
     }
 
     /** Applies one balance change in its own transaction. */
@@ -110,10 +124,11 @@ public class WalletService {
         User updated = users.mongoCollection().findOneAndUpdate(session, filter, Updates.combine(Updates.inc("balance", amount), Updates.inc("balanceVersion", 1)),
                 new FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER));
         if (updated == null) {
-            if (users.mongoCollection().countDocuments(session, Filters.eq("_id", userId)) == 0) {
-                throw ApiException.notFound("User not found");
+            User current = users.mongoCollection().find(session, Filters.eq("_id", userId)).first();
+            if (current == null) {
+                throw ApiException.notFound(ErrorCode.USER_NOT_FOUND, "User not found");
             }
-            throw new InsufficientBalanceException();
+            throw new InsufficientBalanceException(current.balance, -amount);
         }
 
         LedgerEntry entry = new LedgerEntry();
