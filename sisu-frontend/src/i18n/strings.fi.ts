@@ -39,6 +39,15 @@ export const fi = {
     intro:
       'Sisu Market on ennustemarkkina, jossa panostat leikkirahaa kyllä/ei-kysymyksiin ja kerrytät sisua osumalla oikeaan.',
   },
+  leaderboard: {
+    title: 'Tulostaulukko',
+    intro: 'Käyttäjät parhaan sisu-saldon mukaan.',
+    rank: 'Sija',
+    user: 'Käyttäjä',
+    balance: 'Saldo',
+    empty: 'Ei käyttäjiä vielä.',
+    loadFailed: 'Tulostaulukon lataaminen epäonnistui.',
+  },
   predictions: {
     listTitle: 'Ennusteet',
     listIntro: 'Selaa kyllä/ei-kysymyksiä ja niiden tämänhetkisiä kertoimia.',
@@ -107,6 +116,22 @@ export const fi = {
     potentialPayout: 'Mahdollinen voitto',
     placedAt: 'Asetettu',
     unknownPrediction: 'Tuntematon ennuste',
+    balanceTitle: 'Sisu-saldo',
+    createdPredictionsTitle: 'Luomasi ennusteet',
+    createdPredictionsIntro: 'Ennusteet, jotka olet luonut muitten panostettaviksi.',
+    noCreatedPredictions: 'Et ole luonut vielä ennusteita.',
+    transactionsTitle: 'Tapahtumahistoria',
+    transactionsIntro: 'Kaikki sisu-saldosi muutokset aikajärjestyksessä.',
+    noTransactions: 'Ei tapahtumia.',
+    loadTransactionsFailed: 'Tapahtumahistorian lataaminen epäonnistui.',
+    reason: 'Syy',
+    amount: 'Määrä',
+    transactionReason: {
+      STARTING_GRANT: 'Aloitusavustus',
+      WAGER_PLACED: 'Panos asetettu',
+      PAYOUT: 'Voitonmaksu',
+      REFUND: 'Palautus',
+    },
   },
   odds: {
     title: 'Kertoimet',

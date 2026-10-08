@@ -5,6 +5,7 @@ import { useAuth } from './hooks/useAuth';
 import { useLiveUpdates } from './hooks/useLiveUpdates';
 import { fi } from './i18n/strings.fi';
 import CreatePrediction from './pages/CreatePrediction';
+import Leaderboard from './pages/Leaderboard';
 import Login from './pages/Login';
 import PredictionDetail from './pages/PredictionDetail';
 import PredictionList from './pages/PredictionList';
@@ -88,6 +89,11 @@ function Layout({ children }: { children: ReactNode }) {
                   {fi.nav.predictions}
                 </NavLink>
               </li>
+              <li>
+                <NavLink to="/leaderboard" className={navLinkClass}>
+                  {fi.nav.leaderboard}
+                </NavLink>
+              </li>
             </ul>
             <AuthNav />
           </nav>
@@ -157,6 +163,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/predictions" element={<PredictionList />} />
+        <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/create-prediction" element={<CreatePrediction />} />
         <Route path="/predictions/:id" element={<PredictionDetail />} />
         <Route path="/profile" element={<Profile />} />

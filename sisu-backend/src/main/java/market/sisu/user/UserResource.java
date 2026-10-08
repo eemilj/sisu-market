@@ -1,12 +1,29 @@
 package market.sisu.user;
 
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Sorts;
 import io.quarkus.security.Authenticated;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import java.time.Clock;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import market.sisu.common.ApiError;
 import market.sisu.common.ApiException;
+import market.sisu.prediction.Prediction;
+import market.sisu.prediction.PredictionRepository;
+import market.sisu.prediction.PredictionSummary;
+import market.sisu.transaction.Transaction;
+import market.sisu.transaction.TransactionRepository;
+import market.sisu.wager.Wager;
+import market.sisu.wager.WagerRepository;
+import market.sisu.wager.WagerView;
 import org.bson.types.ObjectId;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.eclipse.microprofile.openapi.annotations.Operation;
@@ -16,9 +33,7 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 /**
- * {@code /api/users/*} for the logged-in user. User Story 1 needs only the session check below so
- * the SPA can restore the login and show the balance; User Story 6 (T066) extends this resource
- * with the full private profile and the transaction history.
+ * {@code /api/users/*} for the logged-in user (User Story 1 & User Story 6).
  */
 @Path("/users")
 @Tag(name = "users")
@@ -26,24 +41,89 @@ public class UserResource {
 
     private final UserRepository users;
     private final JsonWebToken jwt;
+    private final PredictionRepository predictionRepository;
+    private final WagerRepository wagerRepository;
+    private final TransactionRepository transactionRepository;
+    private final Clock clock;
 
-    UserResource(UserRepository users, JsonWebToken jwt) {
+    UserResource(
+            UserRepository users,
+            JsonWebToken jwt,
+            PredictionRepository predictionRepository,
+            WagerRepository wagerRepository,
+            TransactionRepository transactionRepository,
+            Clock clock) {
         this.users = users;
         this.jwt = jwt;
+        this.predictionRepository = predictionRepository;
+        this.wagerRepository = wagerRepository;
+        this.transactionRepository = transactionRepository;
+        this.clock = clock;
     }
 
     @GET
     @Path("/me")
     @Produces(MediaType.APPLICATION_JSON)
     @Authenticated
-    @Operation(summary = "The logged-in user's own account summary (extended to the full private profile by US6)")
+    @Operation(summary = "The logged-in user's own profile — private (FR-030)")
     @APIResponse(responseCode = "200", description = "OK")
     @APIResponse(
             responseCode = "401",
             description = "Not logged in",
             content =
                     @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ApiError.class)))
-    public UserSummary me() {
+    public UserProfile me() {
+        User user = getCurrentUser();
+        Instant now = clock.instant();
+        List<PredictionSummary> created = predictionRepository
+                .mongoCollection()
+                .find(Filters.eq("creatorId", user.id))
+                .sort(Sorts.descending("createdAt"))
+                .into(new ArrayList<>())
+                .stream()
+                .map(p -> PredictionSummary.of(p, now))
+                .toList();
+        List<Wager> userWagers = wagerRepository
+                .mongoCollection()
+                .find(Filters.eq("userId", user.id))
+                .sort(Sorts.descending("placedAt"))
+                .into(new ArrayList<>());
+        List<WagerView> wagerViews;
+        if (userWagers.isEmpty()) {
+            wagerViews = List.of();
+        } else {
+            Map<ObjectId, Prediction> byId =
+                    predictionRepository
+                            .findByIds(userWagers.stream()
+                                    .map(w -> w.predictionId)
+                                    .distinct()
+                                    .toList())
+                            .stream()
+                            .collect(Collectors.toMap(p -> p.id, Function.identity()));
+            wagerViews = userWagers.stream()
+                    .map(wager -> WagerView.of(wager, byId.get(wager.predictionId)))
+                    .toList();
+        }
+        return UserProfile.of(user, created, wagerViews);
+    }
+
+    @GET
+    @Path("/me/transactions")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Authenticated
+    @Operation(summary = "The logged-in user's transaction history (FR-011)")
+    @APIResponse(responseCode = "200", description = "OK")
+    @APIResponse(
+            responseCode = "401",
+            description = "Not logged in",
+            content =
+                    @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ApiError.class)))
+    public List<Transaction> transactions() {
+        User user = getCurrentUser();
+        return transactionRepository.findByUser(user.id);
+    }
+
+    private User getCurrentUser() {
         ObjectId userId;
         try {
             userId = new ObjectId(jwt.getSubject());
@@ -54,6 +134,6 @@ public class UserResource {
         if (user == null || user.deletedAt != null) {
             throw ApiException.unauthorized("UNAUTHENTICATED", "Login required");
         }
-        return UserSummary.of(user);
+        return user;
     }
 }
