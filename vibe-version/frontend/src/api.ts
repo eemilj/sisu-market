@@ -187,6 +187,7 @@ export class ApiError extends Error {
 const TOKEN_KEY = 'sisu.token';
 
 export const tokenStore = {
+  key: TOKEN_KEY,
   get: () => localStorage.getItem(TOKEN_KEY),
   set: (token: string) => localStorage.setItem(TOKEN_KEY, token),
   clear: () => localStorage.removeItem(TOKEN_KEY),

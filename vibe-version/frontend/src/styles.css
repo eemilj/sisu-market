@@ -223,6 +223,10 @@ h1, h2, h3 { line-height: 1.25; }
 .alert p { margin: 0 0 8px; }
 .alert .btn { background: var(--surface); }
 
+.error-page { max-width: 560px; margin: 48px auto; padding: 28px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.error-page h1 { margin: 0 0 8px; font-size: 1.4rem; }
+.error-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+
 .alert { background: #fdecea; color: #8c2318; border: 1px solid #f5c2bc; border-radius: 8px; padding: 10px 12px; margin: 0; }
 
 /* Touch-friendly sizes */

@@ -1,4 +1,5 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import ErrorBoundary from './components/ErrorBoundary';
 import Header from './components/Header';
 import { useAuth } from './auth';
 import { useLiveEvents } from './live';
@@ -27,11 +28,13 @@ function MyTransactions() {
 }
 
 export default function App() {
+  const location = useLocation();
   return (
     <>
       <BalanceSync />
       <Header />
       <main className="container">
+        <ErrorBoundary resetKey={location.key}>
         <Routes>
           <Route path="/" element={<PredictionsPage />} />
           <Route path="/predictions/new" element={<CreatePredictionPage />} />
@@ -42,6 +45,7 @@ export default function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </ErrorBoundary>
       </main>
     </>
   );

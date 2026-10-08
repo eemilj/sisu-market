@@ -1,4 +1,5 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Fragment } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../auth';
 import { useLive } from '../live';
 import { formatSisu } from '../format';
@@ -6,7 +7,6 @@ import { formatSisu } from '../format';
 export default function Header() {
   const { user, loading, logout } = useAuth();
   const { status } = useLive();
-  const navigate = useNavigate();
 
   return (
     <header className="header">
@@ -25,10 +25,15 @@ export default function Header() {
           >
             <span className="live-label">{status === 'live' ? 'Ajantasainen' : 'Yhdistetään…'}</span>
           </span>
+          {/*
+            Distinct keys make React swap the logged-in and logged-out groups as wholes instead of patching
+            text inside reused links. That matters when a browser translates the page: it replaces our text
+            nodes with its own <font> elements, and removing one of ours by hand would then throw.
+          */}
           {loading ? null : user ? (
-            <>
+            <Fragment key="signed-in">
               <Link to="/predictions/new" className="btn btn-primary" aria-label="Uusi ennuste">
-                +<span className="hide-sm">&nbsp;Uusi ennuste</span>
+                <span aria-hidden="true">+</span><span className="hide-sm">&nbsp;Uusi ennuste</span>
               </Link>
               <Link to={`/users/${encodeURIComponent(user.username)}?tab=transactions`} className="balance"
                     title="Sisu-saldosi – näytä tapahtumat">
@@ -38,19 +43,16 @@ export default function Header() {
               <Link to={`/users/${encodeURIComponent(user.username)}`} className="username">{user.username}</Link>
               <button
                 className="btn btn-ghost"
-                onClick={() => {
-                  logout();
-                  navigate('/');
-                }}
+                onClick={logout}
               >
                 <span className="hide-sm">Kirjaudu ulos</span><span className="show-sm">Ulos</span>
               </button>
-            </>
+            </Fragment>
           ) : (
-            <>
+            <Fragment key="signed-out">
               <Link to="/login" className="btn btn-ghost">Kirjaudu</Link>
               <Link to="/register" className="btn btn-primary">Luo tili</Link>
-            </>
+            </Fragment>
           )}
         </nav>
       </div>

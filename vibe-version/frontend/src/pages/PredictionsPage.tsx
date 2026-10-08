@@ -36,6 +36,7 @@ export default function PredictionsPage() {
   const navigate = useNavigate();
   // Set when arriving from the create page. Captured once, then cleared from history so a reload doesn't repeat it.
   const [justCreated, setJustCreated] = useState<Prediction | null>(() => location.state?.created ?? null);
+  const [loggedOut, setLoggedOut] = useState<boolean>(() => location.state?.loggedOut === true);
   const [category, setCategory] = useState<Category | 'ALL'>('ALL');
   const [status, setStatus] = useState<PredictionStatus | 'ALL'>('OPEN');
   const [predictions, setPredictions] = useState<Prediction[] | null>(null);
@@ -60,7 +61,8 @@ export default function PredictionsPage() {
   });
 
   useEffect(() => {
-    if (location.state?.created) navigate(location.pathname, { replace: true, state: null });
+    if (location.state?.created || location.state?.loggedOut) navigate(location.pathname, { replace: true, state: null });
+    if (location.state?.loggedOut) setLoggedOut(true);
   }, [location, navigate]);
 
   // Bring the new card into view once the list has rendered.
@@ -102,6 +104,13 @@ export default function PredictionsPage() {
           )}
         </p>
       </section>
+
+      {loggedOut && (
+        <div className="notice" role="status">
+          <span>Olet kirjautunut ulos. Voit edelleen selata ennusteita.</span>
+          <button className="notice-close" onClick={() => setLoggedOut(false)} aria-label="Sulje ilmoitus">×</button>
+        </div>
+      )}
 
       {justCreated && (
         <div className="notice" role="status">
