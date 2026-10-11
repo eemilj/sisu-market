@@ -37,11 +37,7 @@ public class PredictionClosingScheduler {
         List<Prediction> expired = predictions.list("status = ?1 and closingAt <= ?2", PredictionStatus.OPEN, now);
         for (Prediction p : expired) {
             boolean closed = predictions.compareAndSetStatus(
-                    null,
-                    p.id,
-                    Set.of(PredictionStatus.OPEN),
-                    PredictionStatus.CLOSED,
-                    Updates.set("closedAt", now));
+                    null, p.id, Set.of(PredictionStatus.OPEN), PredictionStatus.CLOSED, Updates.set("closedAt", now));
             if (closed) {
                 p.status = PredictionStatus.CLOSED;
                 if (broadcaster != null) {

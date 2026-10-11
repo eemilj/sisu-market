@@ -58,9 +58,7 @@ class PredictionClosingSchedulerTest {
         verify(predictions)
                 .compareAndSetStatus(
                         eq(null), eq(p1.id), eq(Set.of(PredictionStatus.OPEN)), eq(PredictionStatus.CLOSED), any());
-        verify(broadcaster)
-                .broadcastPredictionStatusChanged(
-                        any(LiveEvents.PredictionStatusChanged.class));
+        verify(broadcaster).broadcastPredictionStatusChanged(any(LiveEvents.PredictionStatusChanged.class));
     }
 
     @Test
@@ -80,8 +78,7 @@ class PredictionClosingSchedulerTest {
 
         // Status remains OPEN because compareAndSetStatus failed due to concurrent modification
         assertEquals(PredictionStatus.OPEN, p1.status);
-        verify(broadcaster, never())
-                .broadcastPredictionStatusChanged(any(LiveEvents.PredictionStatusChanged.class));
+        verify(broadcaster, never()).broadcastPredictionStatusChanged(any(LiveEvents.PredictionStatusChanged.class));
     }
 
     @Test
@@ -102,8 +99,6 @@ class PredictionClosingSchedulerTest {
         scheduler.closeExpiredPredictions();
 
         assertEquals(PredictionStatus.CLOSED, p1.status);
-        verify(broadcaster)
-                .broadcastPredictionStatusChanged(
-                        any(LiveEvents.PredictionStatusChanged.class));
+        verify(broadcaster).broadcastPredictionStatusChanged(any(LiveEvents.PredictionStatusChanged.class));
     }
 }
