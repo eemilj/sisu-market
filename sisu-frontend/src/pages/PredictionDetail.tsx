@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { Link, useParams } from 'react-router';
-import { ApiError } from '../api/client';
-import type { PredictionDetail as Detail } from '../api/types';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { ApiError, api, queryKeys } from '../api/client';
+import type { Outcome, PredictionDetail as Detail } from '../api/types';
 import OddsBar from '../components/OddsBar';
 import StatusBadge from '../components/StatusBadge';
 import WagerForm from '../components/WagerForm';
@@ -14,9 +16,7 @@ const backLinkClass =
 /**
  * One prediction's public detail view (User Story 2, scenario 2; FR-015, FR-017): full description,
  * resolution criteria, creator and current odds, plus the wager form for logged-in users (User
- * Story 3). Odds and balance stay live without polling: `useLiveUpdates` (mounted once in the app
- * shell) writes `odds-updated` and `balance-updated` events into the same query cache this page
- * and the form read from.
+ * Story 3) and resolver action (User Story 5).
  */
 export default function PredictionDetail() {
   const { id = '' } = useParams();
@@ -87,6 +87,8 @@ export default function PredictionDetail() {
         )}
       </section>
 
+      <ResolveSection prediction={prediction} />
+
       <WagerSection prediction={prediction} />
 
       <dl className="grid gap-4 sm:grid-cols-3">
@@ -122,6 +124,86 @@ export default function PredictionDetail() {
         <p className="mt-1 whitespace-pre-line text-slate-800">{prediction.resolutionCriteria}</p>
       </section>
     </article>
+  );
+}
+
+function ResolveSection({ prediction }: { prediction: Detail }) {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [outcome, setOutcome] = useState<Outcome>('YES');
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const resolveMutation = useMutation({
+    mutationFn: (winningOutcome: Outcome) =>
+      api.resolvePrediction(prediction.id, { outcome: winningOutcome }),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(queryKeys.prediction(prediction.id), updated);
+      queryClient.invalidateQueries({ queryKey: queryKeys.predictionLists });
+      setSuccessMessage(fi.predictions.resolveSuccess);
+    },
+  });
+
+  if (prediction.status !== 'CLOSED' || !user || user.role !== 'RESOLVER') {
+    return null;
+  }
+
+  return (
+    <section
+      aria-labelledby="resolve-title"
+      className="rounded-lg border border-amber-200 bg-amber-50 p-4 shadow-sm"
+    >
+      <h2 id="resolve-title" className="mb-2 text-lg font-semibold text-amber-900">
+        {fi.predictions.resolveTitle}
+      </h2>
+      <p className="mb-4 text-sm text-amber-800">{fi.predictions.resolveIntro}</p>
+
+      {successMessage && (
+        <p role="status" className="mb-3 font-medium text-green-800">
+          {successMessage}
+        </p>
+      )}
+
+      {resolveMutation.isError && (
+        <p role="alert" className="mb-3 text-sm font-medium text-red-700">
+          {resolveMutation.error instanceof ApiError
+            ? errorMessage(resolveMutation.error.code)
+            : fi.errors.unknown}
+        </p>
+      )}
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          resolveMutation.mutate(outcome);
+        }}
+        className="flex flex-wrap items-center gap-4"
+      >
+        <fieldset className="flex items-center gap-4">
+          <legend className="sr-only">{fi.wager.outcome}</legend>
+          {(['YES', 'NO'] as Outcome[]).map((value) => (
+            <label key={value} className="flex items-center gap-1.5 font-medium cursor-pointer">
+              <input
+                type="radio"
+                name="resolve-outcome"
+                value={value}
+                checked={outcome === value}
+                onChange={() => setOutcome(value)}
+                className="h-4 w-4 text-sky-600 focus:ring-sky-500"
+              />
+              {fi.outcome[value]}
+            </label>
+          ))}
+        </fieldset>
+
+        <button
+          type="submit"
+          disabled={resolveMutation.isPending}
+          className="rounded bg-amber-700 px-4 py-2 font-semibold text-white shadow hover:bg-amber-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700 disabled:opacity-50"
+        >
+          {resolveMutation.isPending ? fi.predictions.resolving : fi.predictions.resolveSubmit}
+        </button>
+      </form>
+    </section>
   );
 }
 

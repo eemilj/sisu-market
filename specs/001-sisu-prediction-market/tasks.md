@@ -271,31 +271,31 @@ wagers are paid out and the balance changes are recorded.
 
 ### Tests for User Story 5
 
-- [ ] T055 [P] [US5] Unit test for the automatic OPEN→CLOSED transition at `closingAt`, asserting
+- [X] T055 [P] [US5] Unit test for the automatic OPEN→CLOSED transition at `closingAt`, asserting
   the ≤1-minute bound and that it still holds after a simulated restart (FR-025), in
   `sisu-backend/src/test/java/market/sisu/unit/PredictionClosingSchedulerTest.java`
-- [ ] T056 [P] [US5] Unit test for the pari-mutuel payout calculation (no winners, a single wager,
+- [X] T056 [P] [US5] Unit test for the pari-mutuel payout calculation (no winners, a single wager,
   multiple wagers) in `sisu-backend/src/test/java/market/sisu/unit/PayoutCalculatorTest.java`
-- [ ] T057 [P] [US5] Contract test for `POST /api/predictions/{id}/resolve` (resolver-only,
+- [X] T057 [P] [US5] Contract test for `POST /api/predictions/{id}/resolve` (resolver-only,
   single-resolution guard) in
   `sisu-backend/src/test/java/market/sisu/contract/ResolvePredictionContractTest.java`
 
 ### Implementation for User Story 5
 
-- [ ] T058 [US5] Implement a DB-driven `@Scheduled` job (interval ≤1 minute) flipping `OPEN`
+- [X] T058 [US5] Implement a DB-driven `@Scheduled` job (interval ≤1 minute) flipping `OPEN`
   predictions to `CLOSED` once `closingAt` has passed, self-healing after a restart so the bound
   still holds (FR-025) — this is for the prediction's *visible* status only; wager placement itself
   already rejects late wagers directly via T046, so this job is not the correctness-critical path —
   in `sisu-backend/src/main/java/market/sisu/prediction/PredictionClosingScheduler.java` (depends on
   T011)
-- [ ] T059 [US5] Implement `ResolutionService.resolve` (RESOLVER-role check, conditional
+- [X] T059 [US5] Implement `ResolutionService.resolve` (RESOLVER-role check, conditional
   CLOSED→RESOLVED update, pari-mutuel payout transaction, SSE broadcast) in
   `sisu-backend/src/main/java/market/sisu/prediction/ResolutionService.java` (depends on T014,
   T017, T046)
-- [ ] T060 [US5] Implement the `PredictionResource` POST `/resolve` endpoint in
+- [X] T060 [US5] Implement the `PredictionResource` POST `/resolve` endpoint in
   `sisu-backend/src/main/java/market/sisu/prediction/PredictionResource.java` (depends on T053,
   T059)
-- [ ] T061 [P] [US5] Add the resolver-only "Resolve" action to the `PredictionDetail` page in
+- [X] T061 [P] [US5] Add the resolver-only "Resolve" action to the `PredictionDetail` page in
   `sisu-frontend/src/pages/PredictionDetail.tsx` (depends on T049)
 
 **Checkpoint**: User Stories 1–5 all work independently — the full wager-to-payout loop is complete.
