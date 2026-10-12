@@ -187,34 +187,34 @@ and the balance/odds update, independent of prediction creation or resolution.
 
 ### Tests for User Story 3
 
-- [ ] T042 [P] [US3] Contract test for `POST /api/predictions/{id}/wagers` (success, over-balance,
+- [X] T042 [P] [US3] Contract test for `POST /api/predictions/{id}/wagers` (success, over-balance,
   closed/resolved/cancelled prediction (FR-021), invalid amount) in
   `sisu-backend/src/test/java/market/sisu/contract/WagerContractTest.java`
-- [ ] T043 [P] [US3] Contract test for `GET /api/users/me/wagers` in
+- [X] T043 [P] [US3] Contract test for `GET /api/users/me/wagers` in
   `sisu-backend/src/test/java/market/sisu/contract/MyWagersContractTest.java`
-- [ ] T044 [P] [US3] Unit test for the pari-mutuel pool/odds update after a wager in
+- [X] T044 [P] [US3] Unit test for the pari-mutuel pool/odds update after a wager in
   `sisu-backend/src/test/java/market/sisu/unit/OddsCalculatorTest.java`
-- [ ] T045 [P] [US3] Unit test for atomic balance-debit/wager/ledger writes under concurrent wagers
+- [X] T045 [P] [US3] Unit test for atomic balance-debit/wager/ledger writes under concurrent wagers
   (balance never negative, no double spend), plus a case asserting a wager is rejected when
   `closingAt` has passed even while the prediction's cached `status` is still `OPEN` (FR-025, using
   an injected `Clock`), in `sisu-backend/src/test/java/market/sisu/unit/WagerServiceTest.java`
 
 ### Implementation for User Story 3
 
-- [ ] T046 [US3] Implement `WagerService.placeWager` (validation — including rejecting the wager if
+- [X] T046 [US3] Implement `WagerService.placeWager` (validation — including rejecting the wager if
   `now >= prediction.closingAt`, checked directly against the clock rather than only the cached
   `status`, per FR-025 — one MongoDB transaction across balance/wager/pool/ledger, SSE broadcast) in
   `sisu-backend/src/main/java/market/sisu/wager/WagerService.java` (depends on T011, T012, T014,
   T017)
-- [ ] T047 [US3] Implement `WagerResource` (`POST /api/predictions/{id}/wagers`,
+- [X] T047 [US3] Implement `WagerResource` (`POST /api/predictions/{id}/wagers`,
   `GET /api/users/me/wagers`) in `sisu-backend/src/main/java/market/sisu/wager/WagerResource.java`
   (depends on T046)
-- [ ] T048 [P] [US3] Build the `WagerForm` component with balance-aware client-side validation in
+- [X] T048 [P] [US3] Build the `WagerForm` component with balance-aware client-side validation in
   `sisu-frontend/src/components/WagerForm.tsx` (depends on T019)
-- [ ] T049 [US3] Wire `WagerForm` into the `PredictionDetail` page and subscribe to
+- [X] T049 [US3] Wire `WagerForm` into the `PredictionDetail` page and subscribe to
   `odds-updated`/`balance-updated` SSE events in `sisu-frontend/src/pages/PredictionDetail.tsx`
   (depends on T040, T048, T022)
-- [ ] T050 [P] [US3] Create the Profile page with a "my open wagers and potential payout" section
+- [X] T050 [P] [US3] Create the Profile page with a "my open wagers and potential payout" section
   (balance/created-predictions/transaction-history sections are added by User Story 6) in
   `sisu-frontend/src/pages/Profile.tsx` (depends on T019, T033)
 
@@ -312,24 +312,24 @@ wagers and balance changes already exist.
 
 ### Tests for User Story 6
 
-- [ ] T062 [P] [US6] Contract test for `GET /api/leaderboard` in
+- [X] T062 [P] [US6] Contract test for `GET /api/leaderboard` in
   `sisu-backend/src/test/java/market/sisu/contract/LeaderboardContractTest.java`
-- [ ] T063 [P] [US6] Contract test for `GET /api/users/me` and `GET /api/users/me/transactions`,
+- [X] T063 [P] [US6] Contract test for `GET /api/users/me` and `GET /api/users/me/transactions`,
   including the 401-when-logged-out case and confirming no endpoint exposes another user's profile,
   in `sisu-backend/src/test/java/market/sisu/contract/UserProfileContractTest.java`
-- [ ] T064 [P] [US6] Unit test asserting a user's transaction-log sum always equals `balanceSisu`
+- [X] T064 [P] [US6] Unit test asserting a user's transaction-log sum always equals `balanceSisu`
   (SC-006) in `sisu-backend/src/test/java/market/sisu/unit/TransactionLedgerTest.java`
 
 ### Implementation for User Story 6
 
-- [ ] T065 [US6] Implement the `LeaderboardResource` (ranked by balance) in
+- [X] T065 [US6] Implement the `LeaderboardResource` (ranked by balance) in
   `sisu-backend/src/main/java/market/sisu/user/LeaderboardResource.java` (depends on T010)
-- [ ] T066 [US6] Implement `UserResource` `GET /api/users/me` and
+- [X] T066 [US6] Implement `UserResource` `GET /api/users/me` and
   `GET /api/users/me/transactions` in `sisu-backend/src/main/java/market/sisu/user/UserResource.java`
   (depends on T010, T013)
-- [ ] T067 [P] [US6] Build the `Leaderboard` page in `sisu-frontend/src/pages/Leaderboard.tsx`
+- [X] T067 [P] [US6] Build the `Leaderboard` page in `sisu-frontend/src/pages/Leaderboard.tsx`
   (depends on T019)
-- [ ] T068 [US6] Extend the Profile page with balance, created-predictions, and transaction-history
+- [X] T068 [US6] Extend the Profile page with balance, created-predictions, and transaction-history
   sections in `sisu-frontend/src/pages/Profile.tsx` (depends on T050, T066)
 
 **Checkpoint**: All six user stories are independently functional.

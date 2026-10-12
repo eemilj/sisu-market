@@ -5,9 +5,11 @@ import { useAuth } from './hooks/useAuth';
 import { useLiveUpdates } from './hooks/useLiveUpdates';
 import { fi } from './i18n/strings.fi';
 import CreatePrediction from './pages/CreatePrediction';
+import Leaderboard from './pages/Leaderboard';
 import Login from './pages/Login';
 import PredictionDetail from './pages/PredictionDetail';
 import PredictionList from './pages/PredictionList';
+import Profile from './pages/Profile';
 import Register from './pages/Register';
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -43,6 +45,9 @@ function AuthNav() {
     <div className="flex flex-wrap items-center gap-2">
       <NavLink to="/create-prediction" className={navLinkClass}>
         {fi.nav.createPrediction}
+      </NavLink>
+      <NavLink to="/profile" className={navLinkClass}>
+        {fi.nav.profile}
       </NavLink>
       <span
         className="hidden text-sm text-slate-600 sm:inline"
@@ -82,6 +87,11 @@ function Layout({ children }: { children: ReactNode }) {
               <li>
                 <NavLink to="/predictions" className={navLinkClass}>
                   {fi.nav.predictions}
+                </NavLink>
+              </li>
+              <li>
+                <NavLink to="/leaderboard" className={navLinkClass}>
+                  {fi.nav.leaderboard}
                 </NavLink>
               </li>
             </ul>
@@ -153,8 +163,10 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/predictions" element={<PredictionList />} />
+        <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/create-prediction" element={<CreatePrediction />} />
         <Route path="/predictions/:id" element={<PredictionDetail />} />
+        <Route path="/profile" element={<Profile />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
         <Route path="*" element={<NotFound />} />

@@ -39,6 +39,15 @@ export const fi = {
     intro:
       'Sisu Market on ennustemarkkina, jossa panostat leikkirahaa kyllä/ei-kysymyksiin ja kerrytät sisua osumalla oikeaan.',
   },
+  leaderboard: {
+    title: 'Tulostaulukko',
+    intro: 'Käyttäjät parhaan sisu-saldon mukaan.',
+    rank: 'Sija',
+    user: 'Käyttäjä',
+    balance: 'Saldo',
+    empty: 'Ei käyttäjiä vielä.',
+    loadFailed: 'Tulostaulukon lataaminen epäonnistui.',
+  },
   predictions: {
     listTitle: 'Ennusteet',
     listIntro: 'Selaa kyllä/ei-kysymyksiä ja niiden tämänhetkisiä kertoimia.',
@@ -77,6 +86,52 @@ export const fi = {
     submitting: 'Luodaan…',
     /** "12 / 200 merkkiä" */
     characterCount: (length: number, max: number) => `${length} / ${max} merkkiä`,
+  },
+  wager: {
+    title: 'Panosta',
+    intro: 'Valitse lopputulos ja panoksen suuruus. Panos vähennetään saldostasi heti.',
+    loginRequired: 'Kirjaudu sisään panostaaksesi tähän ennusteeseen.',
+    notOpen: 'Tämä ennuste ei enää ota vastaan panoksia.',
+    outcome: 'Lopputulos',
+    amount: 'Panos (sisua)',
+    /** "Saldosi: 1 000 sisua" */
+    amountHint: (balance: string) => `Kokonaisluku, vähintään 1. Saldosi: ${balance}.`,
+    submit: 'Aseta panos',
+    submitting: 'Asetetaan…',
+    outcomeRequired: 'Valitse kyllä tai ei.',
+    /** Confirmation after a successful wager. */
+    placed: (amount: string, outcome: string, payout: string) =>
+      `Panos asetettu: ${amount}, ${outcome}. Mahdollinen voitto nyt: ${payout}.`,
+  },
+  profile: {
+    title: 'Oma profiili',
+    loginRequired: 'Kirjaudu sisään nähdäksesi profiilisi.',
+    openWagersTitle: 'Avoimet panokset',
+    openWagersIntro:
+      'Mahdollinen voitto lasketaan nykyisistä panospotteista ja muuttuu, kun muut panostavat.',
+    noOpenWagers: 'Sinulla ei ole avoimia panoksia.',
+    loadFailed: 'Panosten lataaminen epäonnistui.',
+    yourPick: 'Valintasi',
+    stake: 'Panos',
+    potentialPayout: 'Mahdollinen voitto',
+    placedAt: 'Asetettu',
+    unknownPrediction: 'Tuntematon ennuste',
+    balanceTitle: 'Sisu-saldo',
+    createdPredictionsTitle: 'Luomasi ennusteet',
+    createdPredictionsIntro: 'Ennusteet, jotka olet luonut muitten panostettaviksi.',
+    noCreatedPredictions: 'Et ole luonut vielä ennusteita.',
+    transactionsTitle: 'Tapahtumahistoria',
+    transactionsIntro: 'Kaikki sisu-saldosi muutokset aikajärjestyksessä.',
+    noTransactions: 'Ei tapahtumia.',
+    loadTransactionsFailed: 'Tapahtumahistorian lataaminen epäonnistui.',
+    reason: 'Syy',
+    amount: 'Määrä',
+    transactionReason: {
+      STARTING_GRANT: 'Aloitusavustus',
+      WAGER_PLACED: 'Panos asetettu',
+      PAYOUT: 'Voitonmaksu',
+      REFUND: 'Palautus',
+    },
   },
   odds: {
     title: 'Kertoimet',
@@ -132,6 +187,7 @@ export const fi = {
     RESOLUTION_CRITERIA_REQUIRED: 'Kerro, miten lopputulos ratkaistaan.',
     CLOSING_DATE_NOT_IN_FUTURE: 'Sulkeutumisajan on oltava tulevaisuudessa.',
     INSUFFICIENT_BALANCE: 'Saldosi ei riitä tähän panokseen.',
+    INVALID_WAGER_AMOUNT: 'Panoksen on oltava positiivinen kokonaisluku.',
     USERNAME_TAKEN: 'Käyttäjätunnus on jo käytössä.',
     INVALID_CREDENTIALS: 'Virheellinen käyttäjätunnus tai salasana.',
     TOO_MANY_ATTEMPTS: 'Liian monta epäonnistunutta yritystä. Yritä uudelleen myöhemmin.',

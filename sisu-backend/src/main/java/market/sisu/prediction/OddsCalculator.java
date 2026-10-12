@@ -32,6 +32,25 @@ public final class OddsCalculator {
         return new Odds(yesTenths / 10.0, noTenths / 10.0);
     }
 
+    /**
+     * What a wager would pay out if its side won with the pools as they stand (FR-024, FR-034): the
+     * stake back plus the stake's proportional share of the other side's pool. The share is rounded
+     * down to whole sisu, so the payouts on one side never add up to more than the other pool.
+     *
+     * @param stakeSisu the wager's amount; part of {@code sidePoolSisu}
+     * @param sidePoolSisu everything wagered on the wager's side, including this wager
+     * @param otherPoolSisu everything wagered on the other side
+     * @throws IllegalArgumentException if the stake is not positive, exceeds its own side's pool, or
+     *     the other pool is negative
+     */
+    public static long potentialPayout(long stakeSisu, long sidePoolSisu, long otherPoolSisu) {
+        if (stakeSisu <= 0 || sidePoolSisu < stakeSisu || otherPoolSisu < 0) {
+            throw new IllegalArgumentException(
+                    "Invalid stake/pools: " + stakeSisu + " of " + sidePoolSisu + " vs " + otherPoolSisu);
+        }
+        return Math.addExact(stakeSisu, Math.multiplyExact(stakeSisu, otherPoolSisu) / sidePoolSisu);
+    }
+
     /** One prediction's odds split, in percent. */
     public record Odds(double yesPercent, double noPercent) {}
 }
