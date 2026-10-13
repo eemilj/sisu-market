@@ -25,7 +25,7 @@ services:
       MONGODB_URI: mongodb://mongo:27017/?replicaSet=rs0
       CORS_ORIGINS: http://localhost:3100
       # Comma-separated usernames allowed to resolve any prediction, e.g. SISU_ADMIN_USERNAMES=matti_v docker compose up
-      SISU_ADMIN_USERNAMES: ${SISU_ADMIN_USERNAMES:-emppeli}
+      SISU_ADMIN_USERNAMES: ${SISU_ADMIN_USERNAMES}
     depends_on:
       mongo:
         condition: service_healthy
