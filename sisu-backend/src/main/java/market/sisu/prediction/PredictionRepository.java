@@ -107,16 +107,13 @@ public class PredictionRepository implements PanacheMongoRepository<Prediction> 
             Bson... extraUpdates) {
         List<Bson> updates = new ArrayList<>(List.of(extraUpdates));
         updates.add(Updates.set("status", to.name()));
-        return mongoCollection()
-                        .updateOne(
-                                session,
-                                Filters.and(
-                                        Filters.eq("_id", predictionId),
-                                        Filters.in(
-                                                "status",
-                                                from.stream().map(Enum::name).toList())),
-                                Updates.combine(updates))
-                        .getModifiedCount()
-                == 1;
+        Bson filter = Filters.and(
+                Filters.eq("_id", predictionId),
+                Filters.in("status", from.stream().map(Enum::name).toList()));
+        Bson update = Updates.combine(updates);
+        long modified = session == null
+                ? mongoCollection().updateOne(filter, update).getModifiedCount()
+                : mongoCollection().updateOne(session, filter, update).getModifiedCount();
+        return modified == 1;
     }
 }
