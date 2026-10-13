@@ -9,6 +9,7 @@ import PredictionsPage from './pages/PredictionsPage';
 import CreatePredictionPage from './pages/CreatePredictionPage';
 import ProfilePage from './pages/ProfilePage';
 import LeaderboardPage from './pages/LeaderboardPage';
+import AdminPage from './pages/AdminPage';
 
 /** Keeps the logged-in user's balance current, whichever tab or device changed it. */
 function BalanceSync() {
@@ -40,6 +41,7 @@ export default function App() {
           <Route path="/predictions/new" element={<CreatePredictionPage />} />
           <Route path="/users/:username" element={<ProfilePage />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
+          <Route path="/admin" element={<AdminPage />} />
           <Route path="/wallet" element={<MyTransactions />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />

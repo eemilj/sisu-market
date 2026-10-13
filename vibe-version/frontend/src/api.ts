@@ -119,6 +119,16 @@ export interface Leaderboard {
   me: LeaderboardEntry | null;
 }
 
+/** A row of the admin user list. */
+export interface AdminUser {
+  id: string;
+  username: string;
+  email: string;
+  balance: number;
+  createdAt: string;
+  admin: boolean;
+}
+
 export interface ResolutionResult {
   prediction: Prediction;
   winningWagers: number;
@@ -244,6 +254,13 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ outcome }),
     }),
+
+  adminPredictions: () => request<Prediction[]>('/api/admin/predictions'),
+
+  adminClosePrediction: (predictionId: string) =>
+    request<Prediction>(`/api/admin/predictions/${encodeURIComponent(predictionId)}/close`, { method: 'POST' }),
+
+  adminUsers: () => request<AdminUser[]>('/api/admin/users'),
 
   profile: (username: string) => request<Profile>(`/api/profiles/${encodeURIComponent(username)}`),
 

@@ -276,3 +276,28 @@ h1, h2, h3 { line-height: 1.25; }
   .nav-link { font-size: .85rem; }
   .balance-label { display: none; }
 }
+
+/* ---- admin ---- */
+.admin h2 { margin-top: 32px; }
+.admin-table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-top: 12px; }
+.admin-table th, .admin-table td { padding: 10px 12px; text-align: left; vertical-align: top; }
+.admin-table th { font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); background: var(--bg); }
+.admin-table tr + tr td { border-top: 1px solid var(--border); }
+.admin-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.admin-scroll { overflow-x: auto; }
+.admin-table .resolve { margin-top: 8px; }
+.admin-actions { text-align: right; white-space: nowrap; width: 1%; }
+.btn-close-now { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px; border: 1px solid #f2c4bf; background: #fbeceb; color: var(--no); font: inherit; font-size: .85rem; font-weight: 600; cursor: pointer; }
+.btn-close-now span { font-size: .6rem; }
+.btn-close-now:hover { background: var(--no); border-color: var(--no); color: #fff; }
+.btn-danger { background: var(--no); color: #fff; }
+.btn-danger:hover:not(:disabled) { background: #a02f23; }
+.btn-danger:disabled { opacity: .6; cursor: default; }
+
+/* Modal */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, .5); display: grid; place-items: center; padding: 16px; z-index: 50; }
+.modal { box-sizing: border-box; text-align: left; white-space: normal; overflow-wrap: anywhere; background: var(--surface); border-radius: var(--radius); padding: 24px; width: 100%; max-width: 420px; box-shadow: 0 20px 50px rgba(0, 0, 0, .25); }
+.modal h2 { margin: 0 0 8px; font-size: 1.15rem; }
+.modal-question { margin: 0 0 8px; font-weight: 600; overflow-wrap: anywhere; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

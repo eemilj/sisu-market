@@ -41,6 +41,11 @@ export default function Header() {
                 <span className="balance-amount">{formatSisu(user.balance)}</span>
               </Link>
               <Link to={`/users/${encodeURIComponent(user.username)}`} className="username">{user.username}</Link>
+              {user.admin && (
+                <Link to="/admin" className="btn btn-ghost" aria-label="Ylläpito">
+                  <span aria-hidden="true" className="show-sm">⚙</span><span className="hide-sm">Ylläpito</span>
+                </Link>
+              )}
               <button
                 className="btn btn-ghost"
                 onClick={logout}

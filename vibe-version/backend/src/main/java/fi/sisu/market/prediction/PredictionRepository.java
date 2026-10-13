@@ -48,6 +48,11 @@ public class PredictionRepository implements PanacheMongoRepository<Prediction> 
                 .into(new ArrayList<>());
     }
 
+    /** Every prediction, newest first. */
+    public List<Prediction> newestFirst() {
+        return mongoCollection().find().sort(Sorts.descending("createdAt")).into(new ArrayList<>());
+    }
+
     public List<Prediction> byIds(java.util.Collection<ObjectId> ids) {
         return mongoCollection().find(Filters.in("_id", ids)).into(new ArrayList<>());
     }

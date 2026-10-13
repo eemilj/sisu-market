@@ -24,7 +24,7 @@ final class DemoData {
                     "Saako Helsinki ensimmäisen lumipeitteensä ennen 15.11.2026?",
                     "Pysyvä lumi on tullut pääkaupunkiin viime syksyinä yhä myöhemmin.",
                     "KYLLÄ, jos Ilmatieteen laitos raportoi lumipeitteen Helsingin Kaisaniemessä ennen 15.11.2026.",
-                    Category.WEATHER, "2026-11-15T00:00:00Z", "0.42"),
+                    Category.WEATHER, "2026-10-12T00:00:00Z", "0.42"),
             new Seed("Will Lake Kallavesi freeze over near Kuopio before New Year?",
                     "Jäätyykö Kallavesi Kuopion edustalla ennen uuttavuotta?",
                     "Kallaveden jääpeite ratkaisee, milloin talven jäätiet ja luistelureitit voidaan avata.",

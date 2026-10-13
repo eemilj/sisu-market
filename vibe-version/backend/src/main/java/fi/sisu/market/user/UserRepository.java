@@ -40,6 +40,11 @@ public class UserRepository implements PanacheMongoRepository<User> {
                 .into(new ArrayList<>());
     }
 
+    /** Newest sign-ups first. */
+    public List<User> newest(int limit) {
+        return mongoCollection().find().sort(Sorts.descending("createdAt")).limit(limit).into(new ArrayList<>());
+    }
+
     public void ensureIndexes() {
         mongoCollection().createIndex(Indexes.compoundIndex(Indexes.descending("balance"), Indexes.ascending("createdAt")));
         IndexOptions unique = new IndexOptions().unique(true);
