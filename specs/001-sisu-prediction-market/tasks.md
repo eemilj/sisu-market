@@ -298,6 +298,32 @@ wagers are paid out and the balance changes are recorded.
 - [X] T061 [P] [US5] Add the resolver-only "Resolve" action to the `PredictionDetail` page in
   `sisu-frontend/src/pages/PredictionDetail.tsx` (depends on T049)
 
+### Bootstrap resolver for User Story 5 (FR-039, FR-040, added 2026-10-13)
+
+- [X] T081 [P] [US5] Unit test for resolver provisioning with a mocked `UserRepository`: absent →
+  created with `RESOLVER` role, hashed password and a `STARTING_GRANT` ledger entry; present as
+  `RESOLVER` → no change; present as `USER` → role promoted, password hash and balance untouched;
+  unset or too-short password → skipped with a warning (password never logged); a second run is a
+  no-op; a duplicate-key race on insert falls through to the role check, in
+  `sisu-backend/src/test/java/market/sisu/unit/ResolverBootstrapTest.java`
+- [X] T082 [P] [US5] Integration test (Testcontainers MongoDB) that bootstrapping twice leaves exactly
+  one resolver whose ledger sum equals its balance (SC-006), that the resolver can log in and settle a
+  closed prediction, that a regular registrant cannot (403), and that registration can never yield
+  the `RESOLVER` role, in
+  `sisu-backend/src/test/java/market/sisu/integration/ResolverBootstrapIntegrationTest.java`
+- [X] T083 [US5] Add a `UserService` method that creates an account with a given role through the
+  existing registration path (hashing, starting grant, ledger entry in one transaction) and one that
+  promotes an existing user's role only, keeping public `register` hard-wired to `USER`, in
+  `sisu-backend/src/main/java/market/sisu/user/UserService.java` (depends on T027)
+- [X] T084 [US5] Implement `ResolverBootstrap`, observing `StartupEvent` and reading
+  `sisu.bootstrap.resolver.username` / `sisu.bootstrap.resolver.password`, with the
+  absent/present/promote/skip behavior in research.md §8, in
+  `sisu-backend/src/main/java/market/sisu/user/ResolverBootstrap.java` (depends on T083)
+- [X] T085 [P] [US5] Declare `sisu.bootstrap.resolver.username=${SISU_RESOLVER_USERNAME:resolver}`
+  and `sisu.bootstrap.resolver.password=${SISU_RESOLVER_PASSWORD:}` (no default password) in
+  `sisu-backend/src/main/resources/application.properties`, and pass `SISU_RESOLVER_USERNAME` /
+  `SISU_RESOLVER_PASSWORD` through the `sisu-backend` service in `docker-compose.yml`
+
 **Checkpoint**: User Stories 1–5 all work independently — the full wager-to-payout loop is complete.
 
 ---
@@ -342,16 +368,16 @@ wagers and balance changes already exist.
 (US4) already existing, since deletion must refund open wagers and cancel unresolved created
 predictions. No single spec.md user story covers this end-to-end, so it carries no `[Story]` label.
 
-- [ ] T069 [P] Unit test for the account-deletion cascade (own open wagers refunded; own unresolved
+- [X] T069 [P] Unit test for the account-deletion cascade (own open wagers refunded; own unresolved
   predictions cancelled and every wager on them refunded) in
-  `sisu-backend/src/test/java/market/sisu/unit/AccountDeletionServiceTest.java`
-- [ ] T070 Implement `AccountDeletionService` (refund cascade, personal-data scrub, de-identified
+  `sisu-backend/src/test/java/market/sisu/integration/AccountDeletionTest.java` (real MongoDB; the cascade is transactional so a mocked unit test would prove little)
+- [X] T070 Implement `AccountDeletionService` (refund cascade, personal-data scrub, de-identified
   history retained per spec.md Assumptions) in
   `sisu-backend/src/main/java/market/sisu/user/AccountDeletionService.java` (depends on T014, T046,
   T052)
-- [ ] T071 Implement the `UserResource` `DELETE /api/users/me` endpoint in
+- [X] T071 Implement the `UserResource` `DELETE /api/users/me` endpoint in
   `sisu-backend/src/main/java/market/sisu/user/UserResource.java` (depends on T066, T070)
-- [ ] T072 [P] Add a confirm-and-delete account action to the Profile page in
+- [X] T072 [P] Add a confirm-and-delete account action to the Profile page in
   `sisu-frontend/src/pages/Profile.tsx` (depends on T068)
 
 ---
@@ -360,13 +386,13 @@ predictions. No single spec.md user story covers this end-to-end, so it carries 
 
 **Purpose**: Improvements that span multiple user stories
 
-- [ ] T073 [P] Audit all pages for WCAG 2.1 AA (labels, contrast, keyboard/focus order) per
+- [X] T073 [P] Audit all pages for WCAG 2.1 AA (labels, contrast, keyboard/focus order) per
   Constitution III
-- [ ] T074 [P] Audit the frontend for hardcoded copy; confirm every string comes from
+- [X] T074 [P] Audit the frontend for hardcoded copy; confirm every string comes from
   `sisu-frontend/src/i18n/strings.fi.ts` per FR-031
-- [ ] T075 [P] Add the "sisu has no monetary value" disclaimer component per FR-032/SC-008 in
+- [X] T075 [P] Add the "sisu has no monetary value" disclaimer component per FR-032/SC-008 in
   `sisu-frontend/src/components/SisuDisclaimer.tsx`
-- [ ] T076 Run the JaCoCo report and confirm ≥80% line coverage on business-logic packages per
+- [X] T076 Run the JaCoCo report and confirm ≥80% line coverage on business-logic packages per
   Constitution II
 - [ ] T077 Load-test prediction listing and wager placement at 100 concurrent users; confirm the
   500ms/2s targets from Constitution IV and SC-002/SC-003
@@ -384,6 +410,9 @@ predictions. No single spec.md user story covers this end-to-end, so it carries 
   P2 → P3. US1/US2/US3 are mutually independent; US4 only needs Foundational; US5 depends on US3
   (`WagerService`, reused by `ResolutionService`); US6's `Profile` page extends the file US3 created
   (T050 → T068)
+- **Bootstrap resolver (inside Phase 7, FR-039/FR-040)**: T083 → T084; T081/T082/T085 are
+  independent of each other. Needs only US1's `UserService` (T027) and `ResolutionService` (T059)
+  for the end-to-end check in T082
 - **Account Deletion (Phase 9)**: Depends on US1 (`UserResource`), US3 (`WagerService` refund path),
   US4 (`PredictionService`)
 - **Polish (Phase 10)**: Depends on all preceding phases

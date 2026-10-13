@@ -93,6 +93,15 @@ public class PredictionRepository implements PanacheMongoRepository<Prediction> 
     }
 
     /**
+     * Takes a refunded stake back out of one side's pool so the displayed odds stay accurate when a
+     * wager is refunded on account deletion (FR-036). Same transaction as the refund.
+     */
+    public void removeFromPool(ClientSession session, ObjectId predictionId, Outcome outcome, Sisu amount) {
+        String pool = outcome == Outcome.YES ? "yesPoolSisu" : "noPoolSisu";
+        mongoCollection().updateOne(session, Filters.eq("_id", predictionId), Updates.inc(pool, -amount.amount()));
+    }
+
+    /**
      * Atomically moves a prediction from one of {@code from} to {@code to}, applying
      * {@code extraUpdates} in the same write. Because the current status is part of the filter, of
      * two concurrent attempts (e.g. two resolutions) exactly one succeeds (FR-027).

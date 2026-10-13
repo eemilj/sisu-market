@@ -124,3 +124,39 @@ loading-state bookkeeping.
 **Alternatives considered**: Next.js — rejected: the user asked for single-page-application
 characteristics specifically, and Quarkus already serves as the backend, so a React-only SPA build
 (no server-side rendering framework) is the closer fit.
+
+## 8. Bootstrap resolver provisioning (FR-039, FR-040)
+
+**Decision**: A `ResolverBootstrap` bean observes Quarkus's `StartupEvent` and, when
+`sisu.bootstrap.resolver.username` and `sisu.bootstrap.resolver.password` are both set (mapped from
+`SISU_RESOLVER_USERNAME` / `SISU_RESOLVER_PASSWORD`), provisions one `RESOLVER` account:
+
+- **Absent** → create it through the same service path registration uses (password hashing,
+  starting grant, `STARTING_GRANT` transaction, all in one MongoDB transaction), with `role =
+  RESOLVER`.
+- **Present with role `RESOLVER`** → no-op; password and balance are never touched.
+- **Present with role `USER`** → promote the role only; password and balance are untouched
+  (spec edge case).
+- **Not configured, or password fails the registration password rules** → log a clear warning
+  (never the password), skip, and continue starting.
+
+Idempotence under concurrent starts relies on the existing unique index on `username`: a
+duplicate-key failure on insert is treated as "already present" and falls through to the role
+check. `docker-compose.yml` passes the two variables through from the host environment with no
+default password; the username defaults to `resolver`.
+
+**Rationale**: Startup provisioning satisfies "no manual database or role change" (SC-009) while
+keeping the role non-self-service (FR-035/FR-040). Reusing the registration path guarantees the
+ledger invariant (SC-006) holds for the resolver too. Supplying the secret via environment matches
+how the JWT keys and Mongo URI are handled (Constitution Code Quality), and refusing a default
+password avoids a well-known credential on every deployment.
+
+**Alternatives considered**:
+- *First registered user becomes resolver* — rejected: whoever registers first on a public
+  deployment gains the role.
+- *Hardcoded/default resolver password in compose* — rejected: a committed credential.
+- *Admin CLI or HTTP endpoint to promote users* — rejected for this feature: it is the separate
+  role-management capability the spec leaves out of scope; an HTTP endpoint would also widen the
+  attack surface and the OpenAPI contract.
+- *Seed script run by hand (previous quickstart approach)* — rejected: easy to forget, not
+  idempotent by construction, and untestable as part of the app.

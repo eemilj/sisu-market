@@ -6,6 +6,7 @@ import com.mongodb.client.model.CollationStrength;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.Indexes;
+import com.mongodb.client.model.Updates;
 import io.quarkus.mongodb.panache.PanacheMongoRepository;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -48,5 +49,9 @@ public class UserRepository implements PanacheMongoRepository<User> {
     public Optional<User> findById(ClientSession session, ObjectId id) {
         return Optional.ofNullable(
                 mongoCollection().find(session, Filters.eq("_id", id)).first());
+    }
+
+    public void setRole(ObjectId id, Role role) {
+        mongoCollection().updateOne(Filters.eq("_id", id), Updates.set("role", role.name()));
     }
 }

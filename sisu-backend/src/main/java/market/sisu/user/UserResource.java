@@ -3,10 +3,12 @@ package market.sisu.user;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Sorts;
 import io.quarkus.security.Authenticated;
+import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -14,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import market.sisu.auth.SessionCookieFilter;
 import market.sisu.common.ApiError;
 import market.sisu.common.ApiException;
 import market.sisu.prediction.Prediction;
@@ -45,6 +48,8 @@ public class UserResource {
     private final WagerRepository wagerRepository;
     private final TransactionRepository transactionRepository;
     private final Clock clock;
+    private final AccountDeletionService accountDeletion;
+    private final SessionCookieFilter cookies;
 
     UserResource(
             UserRepository users,
@@ -52,13 +57,17 @@ public class UserResource {
             PredictionRepository predictionRepository,
             WagerRepository wagerRepository,
             TransactionRepository transactionRepository,
-            Clock clock) {
+            Clock clock,
+            AccountDeletionService accountDeletion,
+            SessionCookieFilter cookies) {
         this.users = users;
         this.jwt = jwt;
         this.predictionRepository = predictionRepository;
         this.wagerRepository = wagerRepository;
         this.transactionRepository = transactionRepository;
         this.clock = clock;
+        this.accountDeletion = accountDeletion;
+        this.cookies = cookies;
     }
 
     @GET
@@ -121,6 +130,22 @@ public class UserResource {
     public List<Transaction> transactions() {
         User user = getCurrentUser();
         return transactionRepository.findByUser(user.id);
+    }
+
+    @DELETE
+    @Path("/me")
+    @Authenticated
+    @Operation(summary = "Delete the logged-in user's account (FR-033, FR-036)")
+    @APIResponse(responseCode = "204", description = "Account deleted; open wagers refunded, own predictions cancelled")
+    @APIResponse(
+            responseCode = "401",
+            description = "Not logged in",
+            content =
+                    @Content(mediaType = MediaType.APPLICATION_JSON, schema = @Schema(implementation = ApiError.class)))
+    public Response deleteMe() {
+        User user = getCurrentUser();
+        accountDeletion.delete(user.id);
+        return Response.noContent().cookie(cookies.clearedCookie()).build();
     }
 
     private User getCurrentUser() {

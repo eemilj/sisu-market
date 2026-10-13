@@ -137,6 +137,14 @@ export const fi = {
       PAYOUT: 'Voitonmaksu',
       REFUND: 'Palautus',
     },
+    deleteTitle: 'Poista tili',
+    deleteIntro:
+      'Tilin poistaminen on pysyvää. Avoimet panoksesi palautetaan saldollesi, ja keskeneräiset luomasi ennusteet perutaan ja kaikki niiden panokset palautetaan panostajille. Käyttäjätunnuksesi ja salasanasi poistetaan.',
+    deleteButton: 'Poista tilini',
+    deleteConfirmPrompt: 'Haluatko varmasti poistaa tilisi? Tätä ei voi perua.',
+    deleteConfirm: 'Kyllä, poista tilini',
+    deleteCancel: 'Peruuta',
+    deleteFailed: 'Tilin poistaminen epäonnistui.',
   },
   odds: {
     title: 'Kertoimet',

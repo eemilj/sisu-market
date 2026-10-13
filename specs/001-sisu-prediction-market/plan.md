@@ -43,10 +43,11 @@ successful wager (Constitution III, SC-002); prediction list/detail pages load w
 **Constraints**: All sisu amounts stored as integers (no floating point); wager + balance + payout
 writes MUST be atomic (MongoDB multi-document transactions); UI text sourced from a Finnish
 localization file, WCAG 2.1 AA; passwords hashed (bcrypt/Argon2), login rate-limited to 5 attempts /
-15-minute cooldown per username+IP (FR-037); project MUST start locally with a single
-`docker compose up`
+15-minute cooldown per username+IP (FR-037); a resolver account is provisioned idempotently at
+startup from environment-supplied credentials, never from a committed default (FR-039/FR-040,
+research.md §8); project MUST start locally with a single `docker compose up`
 
-**Scale/Scope**: MVP scope — 6 user stories, 38 functional requirements, ~100 concurrent users;
+**Scale/Scope**: MVP scope — 6 user stories, 40 functional requirements, ~100 concurrent users;
 excludes multi-outcome predictions, buying sisu with real money, and social features (comments,
 following)
 
@@ -63,6 +64,12 @@ following)
 
 No violations — Complexity Tracking is left empty.
 
+**Re-check for spec update 2026-10-13 (FR-039/FR-040, bootstrap resolver)**: Still PASS. Code
+Quality — resolver credentials come from environment variables, never committed, and the bootstrap
+reuses the existing registration/hashing/transaction path rather than a parallel one. Testing
+Standards — provisioning logic is a plain service with an injectable repository, unit-testable for
+idempotency; the real unique-index/transaction path is covered by a Testcontainers integration test.
+UX and Performance are unaffected (no new user-facing surface or request-path work).
 **Post-Phase-1 re-check**: Re-evaluated after `research.md`, `data-model.md`, and `contracts/` were
 written. No new violations were introduced — the transaction design in `data-model.md` §"Cross-entity
 invariants" reinforces Testing Standards (explicit atomicity/non-negative-balance/single-resolution
@@ -91,7 +98,8 @@ specs/001-sisu-prediction-market/
 ```text
 sisu-backend/                          # Quarkus REST + SSE API (existing empty dir, filled by this feature)
 ├── src/main/java/market/sisu/
-│   ├── user/                          # User entity, UserResource, UserService, UserRepository
+│   ├── user/                          # User entity, UserResource, UserService, UserRepository,
+│   │                                  # ResolverBootstrap (startup resolver provisioning, FR-039/040)
 │   ├── auth/                          # Login/register, JWT issuance, rate limiting (FR-037)
 │   ├── prediction/                    # Prediction entity, resource, service, repository, odds math (FR-034)
 │   ├── wager/                         # Wager entity, resource, service, repository
