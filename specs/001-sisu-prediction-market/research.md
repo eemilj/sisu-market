@@ -10,7 +10,7 @@ project constitution and feature spec. No items remain marked `NEEDS CLARIFICATI
 `GET /api/realtime/updates` stream per connected client, implemented with Quarkus RESTEasy
 Reactive's `Multi<OutboundSseEvent>` support.
 
-**Rationale**: Every real-time requirement in the spec (SC-002, Constitution III) is one-directional
+**Rationale**: Every real-time requirement in the spec (SC-002, Constitution VII) is one-directional
 — server pushes odds/balance changes to the browser; the browser never needs to push data back over
 the same channel (wagers, predictions, and resolutions are ordinary REST POSTs). SSE runs over plain
 HTTP, auto-reconnects natively via the browser's `EventSource`, and needs no extra client library or
@@ -21,9 +21,9 @@ sticky-connection handshake, keeping the frontend's `useLiveUpdates` hook a thin
 - *WebSockets* (`quarkus-websockets-next`) — rejected as unnecessary complexity; full duplex isn't
   needed since client→server traffic is already REST, and WebSocket reconnection/backpressure
   handling would add code with no corresponding requirement.
-- *Client polling* — rejected outright: REQUIREMENTS.md and Constitution III set a 1-second update
+- *Client polling* — rejected outright: REQUIREMENTS.md and Constitution VII set a 1-second update
   budget, and polling at that frequency at 100 concurrent users wastes request budget the 500ms API
-  performance target (Constitution IV) is meant to protect.
+  performance target (Constitution VII) is meant to protect.
 
 ## 2. Persistence & atomic balance/wager writes
 
@@ -55,7 +55,7 @@ stack (plain Java, no reactive requirement mentioned) doesn't need reactive stre
 headers) authenticates via the same cookie since it's sent automatically on same-site requests.
 
 **Rationale**: A stateless bearer token fits a horizontally-scalable Quarkus API without server-side
-session storage. `httpOnly` prevents XSS-based token theft (Constitution/REQUIREMENTS.md security
+session storage. `httpOnly` prevents XSS-based token theft (Constitution V / REQUIREMENTS.md security
 requirement), and `SameSite=Strict` plus requiring `Content-Type: application/json` on all
 state-changing endpoints blocks the classic CSRF vectors without needing a separate CSRF-token
 handshake. 24 hours is long enough that a play-money market user isn't repeatedly logged out
@@ -66,7 +66,7 @@ mid-session, short enough to bound the blast radius of a leaked cookie.
   and doesn't work for the SSE `EventSource` connection without a query-string token (which then
   leaks into server logs).
 - *Server-side sessions* — rejected: adds a stateful component (sticky sessions or a shared session
-  store) the constitution's Code Quality principle doesn't otherwise require, for no benefit here.
+  store) the constitution's simplicity principle (VI) doesn't otherwise require, for no benefit here.
 
 ## 4. Odds & payout calculation (FR-034)
 
@@ -77,7 +77,7 @@ payout = its stake + (its share of the winning pool × the losing pool).
 
 **Rationale**: Already decided with the user during `/speckit-clarify` (Q1: A); storing running pool
 totals on the prediction document (rather than summing `wagers` on every read) keeps list/detail
-reads a single-document fetch, which is what the 500ms/2s performance targets (Constitution IV,
+reads a single-document fetch, which is what the 500ms/2s performance targets (Constitution VII,
 SC-003) depend on.
 
 **Alternatives considered**: Fixed odds at creation time — already rejected during clarification.
@@ -94,7 +94,7 @@ instances. A TTL index gives automatic cleanup with no scheduled job.
 
 **Alternatives considered**: In-memory rate limiter (e.g., a Caffeine cache) — rejected: doesn't
 survive a restart or work if the backend is ever scaled to more than one instance, and the
-constitution's Reliability expectations favor durability here.
+constitution's ledger/audit principles (II, IV) favor durability here.
 
 ## 6. Frontend localization approach (FR-031)
 
@@ -104,7 +104,7 @@ strings, imported directly by components — no i18n framework.
 **Rationale**: The product has exactly one locale (Finnish) with no requirement to support switching
 languages; a full i18n library (react-i18next, FormatJS) would add bundle size, configuration, and
 indirection for a feature (runtime locale switching) nothing in the spec asks for. A typed constant
-module still satisfies Constitution III's "sourced from a localization file rather than hardcoded
+module still satisfies Constitution VII's "sourced from a localization file rather than hardcoded
 strings" and gives compile-time safety that a full framework's string-key lookups would not.
 
 **Alternatives considered**: `react-i18next` — rejected as unnecessary until a second locale is
@@ -148,7 +148,7 @@ default password; the username defaults to `resolver`.
 **Rationale**: Startup provisioning satisfies "no manual database or role change" (SC-009) while
 keeping the role non-self-service (FR-035/FR-040). Reusing the registration path guarantees the
 ledger invariant (SC-006) holds for the resolver too. Supplying the secret via environment matches
-how the JWT keys and Mongo URI are handled (Constitution Code Quality), and refusing a default
+how the JWT keys and Mongo URI are handled (Constitution V), and refusing a default
 password avoids a well-known credential on every deployment.
 
 **Alternatives considered**:
@@ -160,3 +160,39 @@ password avoids a well-known credential on every deployment.
   attack surface and the OpenAPI contract.
 - *Seed script run by hand (previous quickstart approach)* — rejected: easy to forget, not
   idempotent by construction, and untestable as part of the app.
+
+## 9. Auditability logging and testable cancellation logic (Constitution III, IV)
+
+**Decision**: Emit one structured log line (JBoss Logging, key=value fields, never passwords or
+tokens) for each of: prediction resolved (`predictionId`, `resolverId`, `outcome`, `winners`,
+`totalPaidSisu`), prediction cancelled (`predictionId`, `creatorId`, `reason=ACCOUNT_DELETED`,
+`refundedWagers`, `refundedSisu`), account deleted (`userId`, own wagers refunded), and any failed
+or rolled-back balance transaction (`operation`, `userId`, error code). Log after the transaction
+outcome is known, so a rolled-back attempt is logged as a failure and never as a success. Keep the
+refund/cancel decision (which wagers refund, in what amount, which predictions cancel) in a plain
+function over already-loaded entities so it is unit-testable with no database; the service only
+loads, calls it, and persists the result inside the transaction.
+
+**Rationale**: Principle IV requires all resolutions, cancellations and failed transactions to be
+traceable after the fact; today neither `ResolutionService` nor `AccountDeletionService` logs.
+Principle III expects refund/payout calculation to be unit-testable without external services; the
+deletion cascade is currently verified only against a real MongoDB.
+
+**Alternatives considered**: A dedicated `audit_events` collection - rejected for now (YAGNI,
+Principle VI): structured logs satisfy "logged with enough context to trace" without a new store,
+and can be promoted to a collection later if querying becomes a requirement.
+
+## 10. HTTPS (Constitution V)
+
+**Decision**: The backend and SPA speak plain HTTP inside the deployment; TLS terminates at the
+deployment boundary (reverse proxy or ingress) in front of both. The session cookie is already
+`Secure` and `SameSite=Strict`; the edge adds HSTS. Local `docker compose up` stays on
+`http://localhost`, which browsers treat as a secure context, so the `Secure` cookie still works.
+
+**Rationale**: Keeps the one-command local start (Principle VI) while meeting "all client-server
+communication MUST use HTTPS" wherever the product is actually exposed. A TLS listener inside the
+Quarkus container would add certificate management with no benefit behind a proxy.
+
+**Alternatives considered**: Quarkus-native TLS with a mounted certificate - rejected as extra
+operational surface for a hobby-scale deployment; revisit if the product is ever exposed without a
+proxy.

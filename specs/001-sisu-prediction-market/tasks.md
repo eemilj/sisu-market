@@ -9,10 +9,9 @@ description: "Task list template for feature implementation"
 
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/, quickstart.md (all present)
 
-**Tests**: Included. The project constitution's Testing Standards principle is explicitly
-NON-NEGOTIABLE (80% line coverage on business logic, explicit pricing/payout edge-case tests, full
-suite in CI blocking merge), so test tasks are generated per user story rather than treated as
-optional.
+**Tests**: Included. Constitution Principle III (Test-First Core Domain) requires 80% line coverage
+on business logic, explicit pricing/payout edge-case tests, and the full suite in CI blocking merge,
+so test tasks are generated per user story rather than treated as optional.
 
 **Organization**: Tasks are grouped by user story (from spec.md, priority order P1 → P1 → P1 → P2 →
 P2 → P3) to enable independent implementation and testing of each story, plus a small
@@ -382,20 +381,67 @@ predictions. No single spec.md user story covers this end-to-end, so it carries 
 
 ---
 
+## Phase 9a: Auditability & Transport Security (Constitution IV, V; research.md §9, §10)
+
+**Purpose**: Closes the constitution gaps found by `/speckit-analyze` and the Constitution Check:
+resolutions, cancellations and failed transactions MUST be logged with trace context (Principle IV),
+refund/cancel logic MUST be unit-testable without a database (Principle III), and HTTPS MUST be
+specified for client-server traffic (Principle V). No spec.md user story covers these end-to-end, so
+the tasks carry no `[Story]` label. Log lines are structured `key=value` and MUST NOT contain
+passwords, tokens or password hashes.
+
+- [X] T086 [P] Unit test that a successful resolution emits exactly one `prediction-resolved` log
+  event with `predictionId`, `resolverId`, `outcome`, `winners` and `totalPaidSisu`, and that a
+  rolled-back resolution logs no `prediction-resolved` event, capturing log records in
+  `sisu-backend/src/test/java/market/sisu/unit/ResolutionAuditLogTest.java`
+- [X] T087 Emit the `prediction-resolved` event after commit in `ResolutionService.resolve` (rolled-back
+  attempts are logged once as `transaction-failed` by T093, not here) in
+  `sisu-backend/src/main/java/market/sisu/prediction/ResolutionService.java` (depends on T059, T086)
+- [X] T088 [P] Unit test for a pure `AccountDeletionPlanner` (no MongoDB): given a user's open
+  wagers and unresolved created predictions with their wagers, it returns which wagers are refunded
+  and for how much, which predictions are cancelled, and which pools shrink; cover no wagers, a
+  wager on own prediction, wagers by other users, and an already-resolved prediction left untouched,
+  in `sisu-backend/src/test/java/market/sisu/unit/AccountDeletionPlannerTest.java`
+- [X] T089 Extract the refund/cancel decision from `AccountDeletionService` into a pure
+  `AccountDeletionPlanner` and have the service load, call it, and persist its result inside the
+  existing transaction (behavior unchanged; `AccountDeletionTest` must stay green), in
+  `sisu-backend/src/main/java/market/sisu/user/AccountDeletionPlanner.java` and
+  `sisu-backend/src/main/java/market/sisu/user/AccountDeletionService.java` (depends on T070, T088)
+- [X] T090 [P] Unit test that deleting an account emits one `prediction-cancelled` event per
+  cancelled prediction (`predictionId`, `creatorId`, `reason=ACCOUNT_DELETED`, `refundedWagers`,
+  `refundedSisu`) and one `account-deleted` event (`userId`, `ownWagersRefunded`), in
+  `sisu-backend/src/test/java/market/sisu/unit/AccountDeletionAuditLogTest.java`
+- [X] T091 Emit the `prediction-cancelled` and `account-deleted` events after commit in
+  `sisu-backend/src/main/java/market/sisu/user/AccountDeletionService.java` (depends on T089, T090)
+- [X] T092 [P] Unit test that `MongoTransactions` logs a `transaction-failed` event (`errorCode`,
+  `exception` type; never the exception message) when the callback throws, then rethrows the original
+  exception unchanged, in
+  `sisu-backend/src/test/java/market/sisu/unit/MongoTransactionsLoggingTest.java`
+- [X] T093 Add the `transaction-failed` logging to `MongoTransactions.inTransaction` in
+  `sisu-backend/src/main/java/market/sisu/common/MongoTransactions.java` (depends on T092)
+- [X] T094 [P] Document the HTTPS requirement in a "Deployment" section of `README.md`: TLS
+  terminates at a reverse proxy or ingress in front of the backend and SPA, the proxy adds
+  `Strict-Transport-Security`, the `Secure`/`SameSite=Strict` session cookie requires it in
+  production, and local `http://localhost` is the only supported plain-HTTP setup (research.md §10)
+
+**Checkpoint**: Constitution III, IV and V gaps recorded in plan.md's Constitution Check are closed.
+
+---
+
 ## Phase 10: Polish & Cross-Cutting Concerns
 
 **Purpose**: Improvements that span multiple user stories
 
 - [X] T073 [P] Audit all pages for WCAG 2.1 AA (labels, contrast, keyboard/focus order) per
-  Constitution III
+  Constitution VII
 - [X] T074 [P] Audit the frontend for hardcoded copy; confirm every string comes from
   `sisu-frontend/src/i18n/strings.fi.ts` per FR-031
 - [X] T075 [P] Add the "sisu has no monetary value" disclaimer component per FR-032/SC-008 in
   `sisu-frontend/src/components/SisuDisclaimer.tsx`
 - [X] T076 Run the JaCoCo report and confirm ≥80% line coverage on business-logic packages per
-  Constitution II
+  Constitution III
 - [ ] T077 Load-test prediction listing and wager placement at 100 concurrent users; confirm the
-  500ms/2s targets from Constitution IV and SC-002/SC-003
+  500ms/2s targets from Constitution VII and SC-002/SC-003
 - [ ] T078 Execute the full `quickstart.md` validation script end-to-end and record the results
 
 ---
@@ -415,6 +461,10 @@ predictions. No single spec.md user story covers this end-to-end, so it carries 
   for the end-to-end check in T082
 - **Account Deletion (Phase 9)**: Depends on US1 (`UserResource`), US3 (`WagerService` refund path),
   US4 (`PredictionService`)
+- **Auditability & Transport Security (Phase 9a)**: T086 → T087; T088 → T089 → T091 (T090, a separate
+  test file, may run alongside T088/T089 and must precede T091; T089 and T091 both edit
+  `AccountDeletionService`, so they are sequential); T092 → T093; T094 is independent. Depends on
+  US5 (`ResolutionService`, T059) and Account Deletion (T070)
 - **Polish (Phase 10)**: Depends on all preceding phases
 
 ### Within Each User Story

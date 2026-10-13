@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import market.sisu.common.ApiException;
+import market.sisu.common.AuditLog;
 import market.sisu.common.MongoTransactions;
 import market.sisu.common.Sisu;
 import market.sisu.prediction.OddsCalculator;
@@ -24,6 +25,9 @@ import market.sisu.realtime.SseBroadcaster;
 import market.sisu.transaction.BalanceLedger;
 import market.sisu.transaction.BalanceLedger.Related;
 import market.sisu.transaction.TransactionReason;
+import market.sisu.user.AccountDeletionPlanner.Cancellation;
+import market.sisu.user.AccountDeletionPlanner.OwnedPrediction;
+import market.sisu.user.AccountDeletionPlanner.Plan;
 import market.sisu.wager.Wager;
 import market.sisu.wager.WagerRepository;
 import market.sisu.wager.WagerStatus;
@@ -44,6 +48,7 @@ public class AccountDeletionService {
     private final MongoTransactions tx;
     private final SseBroadcaster broadcaster;
     private final Clock clock;
+    private final AuditLog audit;
 
     public AccountDeletionService(
             UserRepository users,
@@ -52,7 +57,8 @@ public class AccountDeletionService {
             BalanceLedger ledger,
             MongoTransactions tx,
             SseBroadcaster broadcaster,
-            Clock clock) {
+            Clock clock,
+            AuditLog audit) {
         this.users = users;
         this.predictions = predictions;
         this.wagers = wagers;
@@ -60,13 +66,18 @@ public class AccountDeletionService {
         this.tx = tx;
         this.broadcaster = broadcaster;
         this.clock = clock;
+        this.audit = audit;
     }
+
+    /** What a cancelled prediction cost, kept for logging and broadcasting after commit. */
+    private record Cancelled(ObjectId predictionId, int refundedWagers, long refundedSisu) {}
 
     /** Side effects to publish only after the transaction has committed. */
     private record Changes(
-            Set<ObjectId> cancelledPredictions,
+            List<Cancelled> cancelled,
             Set<ObjectId> refundedUsers,
-            Map<ObjectId, Prediction> adjustedPredictions) {}
+            Map<ObjectId, Prediction> adjustedPredictions,
+            int ownWagersRefunded) {}
 
     /**
      * @throws ApiException {@code 404 USER_NOT_FOUND} if the account does not exist or is already deleted
@@ -78,12 +89,8 @@ public class AccountDeletionService {
                     .filter(u -> u.deletedAt == null)
                     .orElseThrow(() -> ApiException.notFound("USER_NOT_FOUND", "No such user"));
 
-            Set<ObjectId> cancelled = new LinkedHashSet<>();
-            Set<ObjectId> refundedUsers = new LinkedHashSet<>();
-            Map<ObjectId, Prediction> adjusted = new LinkedHashMap<>();
-
-            // (b) Cancel own unresolved predictions and refund every wager on them.
-            List<Prediction> owned = predictions
+            // Load what the decision needs, then let the pure planner decide.
+            List<Prediction> created = predictions
                     .mongoCollection()
                     .find(
                             session,
@@ -91,32 +98,49 @@ public class AccountDeletionService {
                                     Filters.eq("creatorId", user.id),
                                     Filters.in("status", PredictionStatus.OPEN.name(), PredictionStatus.CLOSED.name())))
                     .into(new ArrayList<>());
-            for (Prediction prediction : owned) {
+            List<OwnedPrediction> owned = new ArrayList<>();
+            for (Prediction prediction : created) {
+                owned.add(new OwnedPrediction(prediction, openWagersOn(session, prediction.id)));
+            }
+            List<Wager> ownWagers = wagers.mongoCollection()
+                    .find(
+                            session,
+                            Filters.and(Filters.eq("userId", user.id), Filters.eq("status", WagerStatus.OPEN.name())))
+                    .into(new ArrayList<>());
+            Plan plan = AccountDeletionPlanner.plan(user.id, owned, ownWagers);
+
+            List<Cancelled> cancelled = new ArrayList<>();
+            Set<ObjectId> refundedUsers = new LinkedHashSet<>();
+            Map<ObjectId, Prediction> adjusted = new LinkedHashMap<>();
+            int ownRefunded = 0;
+
+            // (b) Cancel own unresolved predictions and refund every wager on them.
+            for (Cancellation cancellation : plan.cancellations()) {
                 boolean moved = predictions.compareAndSetStatus(
                         session,
-                        prediction.id,
+                        cancellation.predictionId(),
                         Set.of(PredictionStatus.OPEN, PredictionStatus.CLOSED),
                         PredictionStatus.CANCELLED);
                 if (!moved) {
                     continue;
                 }
-                cancelled.add(prediction.id);
-                for (Wager wager : openWagersOn(session, prediction.id)) {
+                for (Wager wager : cancellation.refunds()) {
                     refund(session, wager, now);
                     refundedUsers.add(wager.userId);
+                    if (wager.userId.equals(user.id)) {
+                        ownRefunded++;
+                    }
                 }
+                cancelled.add(new Cancelled(
+                        cancellation.predictionId(), cancellation.refunds().size(), cancellation.refundedSisu()));
             }
 
             // (a) Refund the user's own remaining open wagers on other predictions.
-            List<Wager> own = wagers.mongoCollection()
-                    .find(
-                            session,
-                            Filters.and(Filters.eq("userId", user.id), Filters.eq("status", WagerStatus.OPEN.name())))
-                    .into(new ArrayList<>());
-            for (Wager wager : own) {
+            for (Wager wager : plan.ownRefunds()) {
                 refund(session, wager, now);
                 predictions.removeFromPool(session, wager.predictionId, wager.outcome, Sisu.of(wager.amountSisu));
                 adjusted.put(wager.predictionId, null);
+                ownRefunded++;
             }
             for (ObjectId predictionId : new ArrayList<>(adjusted.keySet())) {
                 adjusted.put(
@@ -134,9 +158,18 @@ public class AccountDeletionService {
                                     Updates.set("passwordHash", null),
                                     Updates.set("deletedAt", now)));
             refundedUsers.remove(user.id);
-            return new Changes(cancelled, refundedUsers, adjusted);
+            return new Changes(cancelled, refundedUsers, adjusted, ownRefunded);
         });
 
+        for (Cancelled c : changes.cancelled()) {
+            audit.predictionCancelled(
+                    c.predictionId().toHexString(),
+                    userId.toHexString(),
+                    "ACCOUNT_DELETED",
+                    c.refundedWagers(),
+                    c.refundedSisu());
+        }
+        audit.accountDeleted(userId.toHexString(), changes.ownWagersRefunded());
         publish(changes);
     }
 
@@ -167,9 +200,9 @@ public class AccountDeletionService {
         if (broadcaster == null) {
             return;
         }
-        for (ObjectId predictionId : changes.cancelledPredictions()) {
+        for (Cancelled c : changes.cancelled()) {
             broadcaster.broadcastPredictionStatusChanged(new LiveEvents.PredictionStatusChanged(
-                    predictionId.toHexString(), PredictionStatus.CANCELLED, null));
+                    c.predictionId().toHexString(), PredictionStatus.CANCELLED, null));
         }
         for (Prediction prediction : changes.adjustedPredictions().values()) {
             if (prediction == null) {

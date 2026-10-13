@@ -31,14 +31,25 @@ public class MongoTransactions {
             .build();
 
     private final MongoClient client;
+    private final AuditLog audit;
 
-    MongoTransactions(MongoClient client) {
+    public MongoTransactions(MongoClient client, AuditLog audit) {
         this.client = client;
+        this.audit = audit;
     }
 
+    /**
+     * A transaction that ends in an exception is logged once as {@code transaction-failed}
+     * (Constitution IV) with the error code or exception type only, never the message, which may
+     * carry internals; the original exception is rethrown unchanged.
+     */
     public <T> T inTransaction(Function<ClientSession, T> work) {
         try (ClientSession session = client.startSession()) {
             return session.withTransaction(() -> work.apply(session), OPTIONS);
+        } catch (RuntimeException failure) {
+            String code = failure instanceof ApiException api ? api.code() : "INTERNAL";
+            audit.transactionFailed(code, failure.getClass().getSimpleName());
+            throw failure;
         }
     }
 

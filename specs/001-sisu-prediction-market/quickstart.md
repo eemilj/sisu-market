@@ -16,7 +16,7 @@ docker compose up
 
 Expected: MongoDB, the `sisu-backend` API (default `http://localhost:8080`), and the
 `sisu-frontend` SPA (default `http://localhost:5173`) all start from this one command
-(Constitution I — single-command local start).
+(Constitution VI — single-command local start).
 
 ## 2. Bootstrap a resolver
 
