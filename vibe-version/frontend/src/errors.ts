@@ -75,6 +75,7 @@ const codeMessages: Record<string, (p: Record<string, unknown>) => string> = {
     `Ennuste on vielä auki${p.closesAt ? ` ${formatDateTime(String(p.closesAt))} asti` : ''}. Sen voi ratkaista vasta, kun se on sulkeutunut.`,
   ALREADY_RESOLVED: (p) =>
     `Ennuste on jo ratkaistu${p.outcome ? ` (${outcomeLabels[p.outcome as Outcome]})` : ''}. Samaa ennustetta ei voi ratkaista kahdesti.`,
+  ADMIN_ONLY: () => 'Tämä näkymä on vain ylläpitäjille.',
 };
 
 const fieldLabels: Record<string, string> = {
