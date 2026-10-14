@@ -52,6 +52,49 @@ public class UserService {
      *     {@code 409 USERNAME_TAKEN} when the username is already in use
      */
     public User register(String username, String password) {
+        return createAccount(username, password, Role.USER);
+    }
+
+    /** What {@link #provisionResolver} did, so the caller can log it. */
+    public enum Provisioning {
+        CREATED,
+        PROMOTED,
+        UNCHANGED
+    }
+
+    /**
+     * Ensures the designated resolver account exists (FR-039) and is idempotent (FR-040): a missing
+     * account is created through the registration path (hashing, starting grant, ledger entry), an
+     * existing {@link Role#USER} account only has its role promoted, and an existing resolver is left
+     * untouched. Passwords and balances of existing accounts are never modified.
+     *
+     * @throws ApiException {@code 422 VALIDATION_FAILED} for an empty username or short password
+     */
+    public Provisioning provisionResolver(String username, String password) {
+        String name = username == null ? "" : username.strip();
+        if (name.isEmpty()) {
+            throw ApiException.unprocessable("VALIDATION_FAILED", "Username must not be empty");
+        }
+        if (users.findByUsername(name).isEmpty()) {
+            try {
+                createAccount(name, password, Role.RESOLVER);
+                return Provisioning.CREATED;
+            } catch (ApiException e) {
+                if (!"USERNAME_TAKEN".equals(e.code())) {
+                    throw e;
+                }
+                // A concurrent start created it first; fall through to the role check.
+            }
+        }
+        User existing = users.findByUsername(name).orElseThrow();
+        if (existing.role == Role.RESOLVER) {
+            return Provisioning.UNCHANGED;
+        }
+        users.setRole(existing.id, Role.RESOLVER);
+        return Provisioning.PROMOTED;
+    }
+
+    private User createAccount(String username, String password, Role role) {
         String name = username == null ? "" : username.strip();
         if (name.isEmpty()) {
             throw ApiException.unprocessable("VALIDATION_FAILED", "Username must not be empty");
@@ -71,7 +114,7 @@ public class UserService {
                 user.id = new ObjectId();
                 user.username = name;
                 user.passwordHash = hash;
-                user.role = Role.USER;
+                user.role = role;
                 user.balanceSisu = 0;
                 user.createdAt = now;
                 users.insert(session, user);

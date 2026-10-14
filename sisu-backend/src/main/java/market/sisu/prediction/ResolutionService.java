@@ -10,6 +10,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import market.sisu.common.ApiException;
+import market.sisu.common.AuditLog;
 import market.sisu.common.MongoTransactions;
 import market.sisu.common.Sisu;
 import market.sisu.realtime.LiveEvents;
@@ -39,6 +40,7 @@ public class ResolutionService {
     private final MongoTransactions tx;
     private final SseBroadcaster broadcaster;
     private final Clock clock;
+    private final AuditLog audit;
 
     public ResolutionService(
             PredictionRepository predictions,
@@ -47,7 +49,8 @@ public class ResolutionService {
             BalanceLedger ledger,
             MongoTransactions tx,
             SseBroadcaster broadcaster,
-            Clock clock) {
+            Clock clock,
+            AuditLog audit) {
         this.predictions = predictions;
         this.wagers = wagers;
         this.users = users;
@@ -55,7 +58,11 @@ public class ResolutionService {
         this.tx = tx;
         this.broadcaster = broadcaster;
         this.clock = clock;
+        this.audit = audit;
     }
+
+    /** What a committed resolution did, carried out of the transaction for logging. */
+    private record Resolved(Prediction prediction, int winners, long totalPaidSisu) {}
 
     public PredictionDetail resolve(ObjectId resolverId, String predictionIdStr, Outcome winningOutcome) {
         if (!ObjectId.isValid(predictionIdStr)) {
@@ -71,7 +78,7 @@ public class ResolutionService {
         Instant now = clock.instant();
 
         // Perform transactional resolution, payout, and status update
-        Prediction prediction = tx.inTransaction(session -> {
+        Resolved resolved = tx.inTransaction(session -> {
             Prediction p = predictions
                     .findById(session, predictionId)
                     .orElseThrow(() -> ApiException.notFound("PREDICTION_NOT_FOUND", "No such prediction"));
@@ -101,6 +108,8 @@ public class ResolutionService {
             long winningPool = winningOutcome == Outcome.YES ? p.yesPoolSisu : p.noPoolSisu;
             long losingPool = winningOutcome == Outcome.YES ? p.noPoolSisu : p.yesPoolSisu;
 
+            int winners = 0;
+            long totalPaid = 0;
             for (Wager wager : predictionWagers) {
                 if (wager.status != WagerStatus.OPEN) {
                     continue;
@@ -109,6 +118,8 @@ public class ResolutionService {
                     long payout = OddsCalculator.potentialPayout(wager.amountSisu, winningPool, losingPool);
                     wager.status = WagerStatus.WON;
                     wager.payoutSisu = payout;
+                    winners++;
+                    totalPaid += payout;
                     wager.settledAt = now;
                     wagers.mongoCollection().replaceOne(session, Filters.eq("_id", wager.id), wager);
 
@@ -130,8 +141,15 @@ public class ResolutionService {
             p.winningOutcome = winningOutcome;
             p.resolvedAt = now;
             p.resolvedBy = resolverId;
-            return p;
+            return new Resolved(p, winners, totalPaid);
         });
+        Prediction prediction = resolved.prediction();
+        audit.predictionResolved(
+                predictionIdStr,
+                resolverId.toHexString(),
+                winningOutcome.name(),
+                resolved.winners(),
+                resolved.totalPaidSisu());
 
         // Broadcast SSE updates after successful transaction commit
         if (broadcaster != null) {

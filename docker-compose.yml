@@ -46,8 +46,11 @@ services:
     environment:
       MONGODB_URI: mongodb://mongo:27017/?replicaSet=rs0
       MONGODB_DATABASE: sisu
-      SISU_JWT_PRIVATE_KEY_LOCATION: /keys/private.pem
+      SISU_JWT_PRIVATE_KEY_LOCATION: /keys/private.pem§
       SISU_JWT_PUBLIC_KEY_LOCATION: /keys/public.pem
+      # Bootstrap resolver (FR-039); no default password, so none is provisioned unless it is set.
+      SISU_RESOLVER_USERNAME: ${SISU_RESOLVER_USERNAME:-resolver}
+      SISU_RESOLVER_PASSWORD: ${SISU_RESOLVER_PASSWORD:}
     volumes:
       - jwt-keys:/keys:ro
     ports:

@@ -1,5 +1,6 @@
-import { Link } from 'react-router';
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, api, queryKeys } from '../api/client';
 import type { PredictionSummary, Transaction, Wager } from '../api/types';
 import { useAuth } from '../hooks/useAuth';
@@ -57,6 +58,72 @@ export default function Profile() {
       <CreatedPredictions predictions={profileUser.createdPredictions ?? []} />
       <OpenWagers />
       <TransactionHistory />
+      <DeleteAccount />
+    </section>
+  );
+}
+
+/** FR-033/FR-036: confirm-then-delete. A second explicit step guards the irreversible action. */
+function DeleteAccount() {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const [confirming, setConfirming] = useState(false);
+
+  const deletion = useMutation({
+    mutationFn: api.deleteMe,
+    onSuccess: () => {
+      queryClient.clear();
+      void navigate('/');
+    },
+  });
+
+  return (
+    <section aria-labelledby="delete-account-title" className="border-t border-slate-200 pt-6">
+      <h2 id="delete-account-title" className="text-lg font-semibold">
+        {fi.profile.deleteTitle}
+      </h2>
+      <p className="mb-3 max-w-prose text-sm text-slate-600">{fi.profile.deleteIntro}</p>
+      {!confirming ? (
+        <button
+          type="button"
+          onClick={() => setConfirming(true)}
+          className="rounded border border-red-700 px-4 py-2 font-medium text-red-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700"
+        >
+          {fi.profile.deleteButton}
+        </button>
+      ) : (
+        <div role="alertdialog" aria-labelledby="delete-confirm-prompt" className="max-w-prose">
+          <p id="delete-confirm-prompt" className="font-medium">
+            {fi.profile.deleteConfirmPrompt}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => deletion.mutate()}
+              disabled={deletion.isPending}
+              className="rounded bg-red-800 px-4 py-2 font-medium text-white disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700"
+            >
+              {fi.profile.deleteConfirm}
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirming(false)}
+              disabled={deletion.isPending}
+              className="rounded border border-slate-400 px-4 py-2 font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
+            >
+              {fi.profile.deleteCancel}
+            </button>
+          </div>
+          {deletion.isError && (
+            <p role="alert" className="mt-3 text-red-800">
+              {fi.profile.deleteFailed}{' '}
+              {deletion.error instanceof ApiError
+                ? errorMessage(deletion.error.code)
+                : fi.errors.unknown}
+            </p>
+          )}
+        </div>
+      )}
     </section>
   );
 }

@@ -16,13 +16,30 @@ docker compose up
 
 Expected: MongoDB, the `sisu-backend` API (default `http://localhost:8080`), and the
 `sisu-frontend` SPA (default `http://localhost:5173`) all start from this one command
-(Constitution I — single-command local start).
+(Constitution VI — single-command local start).
 
-## 2. Seed a resolver
+## 2. Bootstrap a resolver
 
-FR-035 requires a dedicated resolver role that isn't self-service. For local validation, seed one
-directly (exact mechanism — a startup script or an admin CLI — is a task-level decision; any
-approach that leaves one `RESOLVER`-role user in MongoDB satisfies this step).
+FR-039/FR-040: the backend provisions the resolver at startup from environment variables. Set them
+before step 1 (there is deliberately no default password):
+
+```bash
+export SISU_RESOLVER_USERNAME=resolver      # optional; defaults to "resolver"
+export SISU_RESOLVER_PASSWORD='choose-a-long-passphrase'
+docker compose up
+```
+
+Expected: the backend log reports the resolver account was created (without the password). Log in
+as it and check the role:
+
+```bash
+curl -i -c resolver_cookies.txt -X POST http://localhost:8080/api/auth/login   -H 'Content-Type: application/json'   -d '{"username":"resolver","password":"choose-a-long-passphrase"}'
+```
+
+Expected: `200`, `role: "RESOLVER"`, `balanceSisu` equal to the starting grant. Then
+`docker compose restart sisu-backend` and log in again: same account, same balance, still exactly
+one resolver (FR-040). Starting without `SISU_RESOLVER_PASSWORD` must still succeed, logging that no
+resolver exists, and resolving a prediction is then impossible until one is configured (FR-039).
 
 ## 3. User Story 1 — register, see starting balance
 
@@ -93,7 +110,7 @@ Expected: `201` with `status: "OPEN"`. Submitting an empty `question` or a past 
 
 1. Create a prediction with `closingAt` a few seconds in the future; wait for it to pass.
 2. Confirm wagering is now rejected: `POST .../wagers` → `409` (FR-025).
-3. Log in as the seeded resolver and resolve it:
+3. Log in as the bootstrapped resolver (§2) and resolve it:
 
    ```bash
    curl -i -b resolver_cookies.txt -X POST \

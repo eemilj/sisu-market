@@ -13,7 +13,7 @@ point), per REQUIREMENTS.md.
 | `_id` | ObjectId | |
 | `username` | string | Unique (unique index); case-insensitive uniqueness check at write time |
 | `passwordHash` | string | Bcrypt/Argon2 hash; never returned by any API response |
-| `role` | enum: `USER`, `RESOLVER` | FR-035 — only `RESOLVER` may resolve predictions; granted out-of-band (e.g. seeded/admin-assigned), not self-service |
+| `role` | enum: `USER`, `RESOLVER` | FR-035 — only `RESOLVER` may resolve predictions; never self-service. Assigned only by startup bootstrap provisioning (FR-039, FR-040; research.md §8); registration always yields `USER` |
 | `balanceSisu` | integer | Denormalized current balance; MUST always equal the sum of that user's `transactions`; MUST never go negative (FR-009) |
 | `createdAt` | timestamp | |
 | `deletedAt` | timestamp \| null | Set on account deletion (FR-033); personal fields (`username`, `passwordHash`) are scrubbed at that point, `_id` and de-identified history rows are retained per the Assumptions in spec.md |
@@ -128,3 +128,18 @@ in the same MongoDB transaction as the balance write.
 5. **Ledger completeness** (SC-006): the sum of a user's `Transaction` rows always equals their
    current `balanceSisu`; no code path writes to `balanceSisu` without also inserting a
    `Transaction`.
+
+## Bootstrap provisioning rules (FR-039, FR-040)
+
+No new fields or collections. The designated resolver is identified by the configured username
+(deployment configuration, not stored). At startup:
+
+| Existing `users` row for the configured username | Result |
+|---|---|
+| none | Insert with `role = RESOLVER`, hashed password, `balanceSisu` = starting grant, plus one `STARTING_GRANT` `Transaction` — in one MongoDB transaction (invariant 5 still holds) |
+| `role = RESOLVER` | No change |
+| `role = USER` | `role` set to `RESOLVER`; `passwordHash`, `balanceSisu`, history unchanged |
+
+Invariants: at most one account is created per configured username (unique index); no account other
+than the configured one is ever promoted by bootstrap; `Prediction.resolvedBy` continues to
+reference a `RESOLVER`-role user.

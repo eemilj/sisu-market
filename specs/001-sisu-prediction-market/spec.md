@@ -78,6 +78,14 @@ description that the user and assistant had already agreed on earlier in this co
   resolution criteria at most 1000 (how and from which source the outcome is decided). Lengths are
   measured after leading/trailing whitespace is trimmed. See FR-038.
 
+### Session 2026-10-13
+
+- Q: How does the first user holding the resolver role come into existence, given the role is not
+  self-service (FR-035)? → A: On first system startup (bootstrap) the system provisions one
+  resolver account from operator-supplied configuration (a username and initial password), without
+  public registration. Provisioning is idempotent and never changes an existing account's
+  credentials or demotes/promotes anyone else. See FR-039 and FR-040.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Create an account and see your sisu balance (Priority: P1)
@@ -218,6 +226,13 @@ it to an outcome, and confirming winning wagers are paid out and the balance cha
    again, **Then** the attempt is rejected and the original outcome is unchanged.
 4. **Given** a resolved prediction where no one wagered on the winning outcome, **When** resolution
    completes, **Then** no payouts occur and the prediction is still marked resolved without error.
+5. **Given** a freshly bootstrapped system with an operator-configured resolver account, **When**
+   that account logs in with the configured credentials, **Then** it holds the resolver role and
+   can settle a closed prediction, while an ordinary registered user attempting the same is
+   rejected.
+6. **Given** a system that has already been bootstrapped, **When** it is restarted, **Then** no
+   additional resolver account is created and the existing resolver's credentials and balance are
+   unchanged.
 
 ---
 
@@ -261,6 +276,12 @@ transaction history after some wagers and balance changes already exist.
 - What happens when a user with open wagers or an unresolved created prediction requests account
   deletion? See FR-036.
 - How does the leaderboard handle two users with exactly equal balances?
+- What happens if no resolver credentials are configured at bootstrap? The system still starts and
+  serves browsing, wagering, and creating predictions, but no one can resolve a prediction until a
+  resolver is provisioned; the system reports clearly that no resolver exists. See FR-039.
+- What happens if the configured resolver username is already taken by a regular user at bootstrap?
+  The existing account is granted the resolver role only if the operator explicitly configured it
+  as the designated resolver; its password and balance are left untouched. See FR-040.
 
 ## Requirements *(mandatory)*
 
@@ -342,11 +363,23 @@ transaction history after some wagers and balance changes already exist.
   characters, whose description is longer than 2000 characters, or whose resolution criteria is
   longer than 1000 characters, measured after trimming leading and trailing whitespace, with an
   error that identifies the field over its limit.
+- **FR-039**: System MUST, on first startup (bootstrap), provision a resolver account from
+  operator-supplied configuration (a username and an initial password), so that a resolver exists
+  without anyone needing to self-register or be promoted by hand. The account receives the
+  resolver role, a securely hashed password (FR-005), and the standard starting sisu grant recorded
+  as a transaction (FR-007, FR-010). If no resolver configuration is supplied, the system MUST still
+  start and MUST make it clear to the operator that no resolver exists.
+- **FR-040**: System MUST make bootstrap resolver provisioning idempotent: restarting an
+  already-bootstrapped system MUST NOT create duplicate resolver accounts, reset the resolver's
+  password or balance, or grant the resolver role to any account other than the configured
+  designated one. The resolver role MUST NOT be obtainable through public registration or any
+  self-service action (FR-035).
 
 ### Key Entities
 
 - **User**: A registered account — unique username, hashed password, current sisu balance, role
-  (regular user or resolver), created predictions, and transaction history.
+  (regular user or resolver; a resolver is provisioned at bootstrap per FR-039), created
+  predictions, and transaction history.
 - **Prediction**: A yes/no question a user created — question text (≤200 characters), description
   (≤2000), resolution criteria (≤1000), closing date, status (open, closed, resolved, or cancelled), the winning outcome once
   resolved, and the creator.
@@ -376,6 +409,9 @@ transaction history after some wagers and balance changes already exist.
   differently without outside help, 100% of the time.
 - **SC-008**: In usability testing, 100% of new users can correctly state, after browsing the
   product, that sisu cannot be exchanged for real money.
+- **SC-009**: On a fresh deployment with resolver configuration supplied, an operator can log in as
+  the resolver and settle a closed prediction without any manual database or role changes, and
+  repeated restarts never produce more than one resolver account.
 
 ## Assumptions
 
@@ -389,4 +425,7 @@ transaction history after some wagers and balance changes already exist.
   *unresolved* created predictions are refunded and cancelled per FR-036 before deletion completes.
 - "Authorized resolver" is a dedicated role held by designated moderators/admins, separate from and
   not automatically granted to a prediction's creator (FR-035).
+- The resolver credentials are supplied by the operator as deployment configuration and are
+  treated as secrets; additional resolvers beyond the bootstrap one are out of scope for this
+  feature (they would be a separate role-management capability).
 - No mobile app is assumed — "works on phone and desktop" refers to a responsive web experience.

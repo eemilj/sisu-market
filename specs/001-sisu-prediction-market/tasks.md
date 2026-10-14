@@ -9,10 +9,9 @@ description: "Task list template for feature implementation"
 
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/, quickstart.md (all present)
 
-**Tests**: Included. The project constitution's Testing Standards principle is explicitly
-NON-NEGOTIABLE (80% line coverage on business logic, explicit pricing/payout edge-case tests, full
-suite in CI blocking merge), so test tasks are generated per user story rather than treated as
-optional.
+**Tests**: Included. Constitution Principle III (Test-First Core Domain) requires 80% line coverage
+on business logic, explicit pricing/payout edge-case tests, and the full suite in CI blocking merge,
+so test tasks are generated per user story rather than treated as optional.
 
 **Organization**: Tasks are grouped by user story (from spec.md, priority order P1 → P1 → P1 → P2 →
 P2 → P3) to enable independent implementation and testing of each story, plus a small
@@ -298,6 +297,32 @@ wagers are paid out and the balance changes are recorded.
 - [X] T061 [P] [US5] Add the resolver-only "Resolve" action to the `PredictionDetail` page in
   `sisu-frontend/src/pages/PredictionDetail.tsx` (depends on T049)
 
+### Bootstrap resolver for User Story 5 (FR-039, FR-040, added 2026-10-13)
+
+- [X] T081 [P] [US5] Unit test for resolver provisioning with a mocked `UserRepository`: absent →
+  created with `RESOLVER` role, hashed password and a `STARTING_GRANT` ledger entry; present as
+  `RESOLVER` → no change; present as `USER` → role promoted, password hash and balance untouched;
+  unset or too-short password → skipped with a warning (password never logged); a second run is a
+  no-op; a duplicate-key race on insert falls through to the role check, in
+  `sisu-backend/src/test/java/market/sisu/unit/ResolverBootstrapTest.java`
+- [X] T082 [P] [US5] Integration test (Testcontainers MongoDB) that bootstrapping twice leaves exactly
+  one resolver whose ledger sum equals its balance (SC-006), that the resolver can log in and settle a
+  closed prediction, that a regular registrant cannot (403), and that registration can never yield
+  the `RESOLVER` role, in
+  `sisu-backend/src/test/java/market/sisu/integration/ResolverBootstrapIntegrationTest.java`
+- [X] T083 [US5] Add a `UserService` method that creates an account with a given role through the
+  existing registration path (hashing, starting grant, ledger entry in one transaction) and one that
+  promotes an existing user's role only, keeping public `register` hard-wired to `USER`, in
+  `sisu-backend/src/main/java/market/sisu/user/UserService.java` (depends on T027)
+- [X] T084 [US5] Implement `ResolverBootstrap`, observing `StartupEvent` and reading
+  `sisu.bootstrap.resolver.username` / `sisu.bootstrap.resolver.password`, with the
+  absent/present/promote/skip behavior in research.md §8, in
+  `sisu-backend/src/main/java/market/sisu/user/ResolverBootstrap.java` (depends on T083)
+- [X] T085 [P] [US5] Declare `sisu.bootstrap.resolver.username=${SISU_RESOLVER_USERNAME:resolver}`
+  and `sisu.bootstrap.resolver.password=${SISU_RESOLVER_PASSWORD:}` (no default password) in
+  `sisu-backend/src/main/resources/application.properties`, and pass `SISU_RESOLVER_USERNAME` /
+  `SISU_RESOLVER_PASSWORD` through the `sisu-backend` service in `docker-compose.yml`
+
 **Checkpoint**: User Stories 1–5 all work independently — the full wager-to-payout loop is complete.
 
 ---
@@ -342,17 +367,64 @@ wagers and balance changes already exist.
 (US4) already existing, since deletion must refund open wagers and cancel unresolved created
 predictions. No single spec.md user story covers this end-to-end, so it carries no `[Story]` label.
 
-- [ ] T069 [P] Unit test for the account-deletion cascade (own open wagers refunded; own unresolved
+- [X] T069 [P] Unit test for the account-deletion cascade (own open wagers refunded; own unresolved
   predictions cancelled and every wager on them refunded) in
-  `sisu-backend/src/test/java/market/sisu/unit/AccountDeletionServiceTest.java`
-- [ ] T070 Implement `AccountDeletionService` (refund cascade, personal-data scrub, de-identified
+  `sisu-backend/src/test/java/market/sisu/integration/AccountDeletionTest.java` (real MongoDB; the cascade is transactional so a mocked unit test would prove little)
+- [X] T070 Implement `AccountDeletionService` (refund cascade, personal-data scrub, de-identified
   history retained per spec.md Assumptions) in
   `sisu-backend/src/main/java/market/sisu/user/AccountDeletionService.java` (depends on T014, T046,
   T052)
-- [ ] T071 Implement the `UserResource` `DELETE /api/users/me` endpoint in
+- [X] T071 Implement the `UserResource` `DELETE /api/users/me` endpoint in
   `sisu-backend/src/main/java/market/sisu/user/UserResource.java` (depends on T066, T070)
-- [ ] T072 [P] Add a confirm-and-delete account action to the Profile page in
+- [X] T072 [P] Add a confirm-and-delete account action to the Profile page in
   `sisu-frontend/src/pages/Profile.tsx` (depends on T068)
+
+---
+
+## Phase 9a: Auditability & Transport Security (Constitution IV, V; research.md §9, §10)
+
+**Purpose**: Closes the constitution gaps found by `/speckit-analyze` and the Constitution Check:
+resolutions, cancellations and failed transactions MUST be logged with trace context (Principle IV),
+refund/cancel logic MUST be unit-testable without a database (Principle III), and HTTPS MUST be
+specified for client-server traffic (Principle V). No spec.md user story covers these end-to-end, so
+the tasks carry no `[Story]` label. Log lines are structured `key=value` and MUST NOT contain
+passwords, tokens or password hashes.
+
+- [X] T086 [P] Unit test that a successful resolution emits exactly one `prediction-resolved` log
+  event with `predictionId`, `resolverId`, `outcome`, `winners` and `totalPaidSisu`, and that a
+  rolled-back resolution logs no `prediction-resolved` event, capturing log records in
+  `sisu-backend/src/test/java/market/sisu/unit/ResolutionAuditLogTest.java`
+- [X] T087 Emit the `prediction-resolved` event after commit in `ResolutionService.resolve` (rolled-back
+  attempts are logged once as `transaction-failed` by T093, not here) in
+  `sisu-backend/src/main/java/market/sisu/prediction/ResolutionService.java` (depends on T059, T086)
+- [X] T088 [P] Unit test for a pure `AccountDeletionPlanner` (no MongoDB): given a user's open
+  wagers and unresolved created predictions with their wagers, it returns which wagers are refunded
+  and for how much, which predictions are cancelled, and which pools shrink; cover no wagers, a
+  wager on own prediction, wagers by other users, and an already-resolved prediction left untouched,
+  in `sisu-backend/src/test/java/market/sisu/unit/AccountDeletionPlannerTest.java`
+- [X] T089 Extract the refund/cancel decision from `AccountDeletionService` into a pure
+  `AccountDeletionPlanner` and have the service load, call it, and persist its result inside the
+  existing transaction (behavior unchanged; `AccountDeletionTest` must stay green), in
+  `sisu-backend/src/main/java/market/sisu/user/AccountDeletionPlanner.java` and
+  `sisu-backend/src/main/java/market/sisu/user/AccountDeletionService.java` (depends on T070, T088)
+- [X] T090 [P] Unit test that deleting an account emits one `prediction-cancelled` event per
+  cancelled prediction (`predictionId`, `creatorId`, `reason=ACCOUNT_DELETED`, `refundedWagers`,
+  `refundedSisu`) and one `account-deleted` event (`userId`, `ownWagersRefunded`), in
+  `sisu-backend/src/test/java/market/sisu/unit/AccountDeletionAuditLogTest.java`
+- [X] T091 Emit the `prediction-cancelled` and `account-deleted` events after commit in
+  `sisu-backend/src/main/java/market/sisu/user/AccountDeletionService.java` (depends on T089, T090)
+- [X] T092 [P] Unit test that `MongoTransactions` logs a `transaction-failed` event (`errorCode`,
+  `exception` type; never the exception message) when the callback throws, then rethrows the original
+  exception unchanged, in
+  `sisu-backend/src/test/java/market/sisu/unit/MongoTransactionsLoggingTest.java`
+- [X] T093 Add the `transaction-failed` logging to `MongoTransactions.inTransaction` in
+  `sisu-backend/src/main/java/market/sisu/common/MongoTransactions.java` (depends on T092)
+- [X] T094 [P] Document the HTTPS requirement in a "Deployment" section of `README.md`: TLS
+  terminates at a reverse proxy or ingress in front of the backend and SPA, the proxy adds
+  `Strict-Transport-Security`, the `Secure`/`SameSite=Strict` session cookie requires it in
+  production, and local `http://localhost` is the only supported plain-HTTP setup (research.md §10)
+
+**Checkpoint**: Constitution III, IV and V gaps recorded in plan.md's Constitution Check are closed.
 
 ---
 
@@ -360,16 +432,16 @@ predictions. No single spec.md user story covers this end-to-end, so it carries 
 
 **Purpose**: Improvements that span multiple user stories
 
-- [ ] T073 [P] Audit all pages for WCAG 2.1 AA (labels, contrast, keyboard/focus order) per
-  Constitution III
-- [ ] T074 [P] Audit the frontend for hardcoded copy; confirm every string comes from
+- [X] T073 [P] Audit all pages for WCAG 2.1 AA (labels, contrast, keyboard/focus order) per
+  Constitution VII
+- [X] T074 [P] Audit the frontend for hardcoded copy; confirm every string comes from
   `sisu-frontend/src/i18n/strings.fi.ts` per FR-031
-- [ ] T075 [P] Add the "sisu has no monetary value" disclaimer component per FR-032/SC-008 in
+- [X] T075 [P] Add the "sisu has no monetary value" disclaimer component per FR-032/SC-008 in
   `sisu-frontend/src/components/SisuDisclaimer.tsx`
-- [ ] T076 Run the JaCoCo report and confirm ≥80% line coverage on business-logic packages per
-  Constitution II
+- [X] T076 Run the JaCoCo report and confirm ≥80% line coverage on business-logic packages per
+  Constitution III
 - [ ] T077 Load-test prediction listing and wager placement at 100 concurrent users; confirm the
-  500ms/2s targets from Constitution IV and SC-002/SC-003
+  500ms/2s targets from Constitution VII and SC-002/SC-003
 - [ ] T078 Execute the full `quickstart.md` validation script end-to-end and record the results
 
 ---
@@ -384,8 +456,15 @@ predictions. No single spec.md user story covers this end-to-end, so it carries 
   P2 → P3. US1/US2/US3 are mutually independent; US4 only needs Foundational; US5 depends on US3
   (`WagerService`, reused by `ResolutionService`); US6's `Profile` page extends the file US3 created
   (T050 → T068)
+- **Bootstrap resolver (inside Phase 7, FR-039/FR-040)**: T083 → T084; T081/T082/T085 are
+  independent of each other. Needs only US1's `UserService` (T027) and `ResolutionService` (T059)
+  for the end-to-end check in T082
 - **Account Deletion (Phase 9)**: Depends on US1 (`UserResource`), US3 (`WagerService` refund path),
   US4 (`PredictionService`)
+- **Auditability & Transport Security (Phase 9a)**: T086 → T087; T088 → T089 → T091 (T090, a separate
+  test file, may run alongside T088/T089 and must precede T091; T089 and T091 both edit
+  `AccountDeletionService`, so they are sequential); T092 → T093; T094 is independent. Depends on
+  US5 (`ResolutionService`, T059) and Account Deletion (T070)
 - **Polish (Phase 10)**: Depends on all preceding phases
 
 ### Within Each User Story

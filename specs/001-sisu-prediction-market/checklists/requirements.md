@@ -58,6 +58,10 @@
   resolution criteria: 200 / 2000 / 1000 characters, measured after trimming), with a matching
   User Story 4 acceptance scenario and SC-007 wording. No checkbox flips; the new requirement is
   testable and technology-agnostic.
+- 2026-10-13: added FR-039/FR-040 (bootstrap-provisioned, idempotent resolver account), US5
+  acceptance scenarios 5-6, two edge cases, SC-009, and Key Entities/Assumptions wording. No
+  [NEEDS CLARIFICATION] markers; no checkbox flips. plan.md, data-model.md and tasks.md need a
+  follow-up for the bootstrap seeding (`/speckit-plan` or `/speckit-analyze`).
 - All checklist items pass. Spec is ready for `/speckit-plan` (plan.md/data-model.md/tasks.md exist
   already for this feature; FR-021/FR-025's changes should be reflected there too — see the
   `/speckit-analyze` report's I1/U1 findings for the exact task-level follow-up).

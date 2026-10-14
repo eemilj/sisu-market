@@ -1,6 +1,7 @@
 import { Link, NavLink, Route, Routes } from 'react-router';
 import type { ReactNode } from 'react';
 import BalanceBadge from './components/BalanceBadge';
+import SisuDisclaimer from './components/SisuDisclaimer';
 import { useAuth } from './hooks/useAuth';
 import { useLiveUpdates } from './hooks/useLiveUpdates';
 import { fi } from './i18n/strings.fi';
@@ -102,6 +103,9 @@ function Layout({ children }: { children: ReactNode }) {
       <main id="main" tabIndex={-1} className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
         {children}
       </main>
+      <footer className="border-t border-slate-200 bg-white px-4 py-3">
+        <SisuDisclaimer />
+      </footer>
     </div>
   );
 }
